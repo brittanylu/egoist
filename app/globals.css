@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas: #f5f4ef;
+  --ink: #14161a;
+  --ink-panel: #1c1e22;
+  --muted: #6b7078;
+  --hairline: #e4e2da;
+  --accent: #e7e1f7;
+  --accent-ink: #4b3f8f;
+  --allow: #1f7a4d;
+  --deny: #b23a34;
+}
+
+html,
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer components {
+  /* Chips / pills */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-hairline bg-white px-2 py-[3px] text-2xs leading-none text-ink transition-all duration-300 ease-calm;
+  }
+  .chip-accent {
+    @apply border-transparent bg-accent text-accent-ink;
+  }
+  .chip-dim {
+    @apply border-hairline/70 bg-transparent text-muted;
+  }
+  .chip-mono {
+    @apply font-mono tracking-tight;
+  }
+
+  /* Cards */
+  .card {
+    @apply rounded-card border border-hairline bg-white;
+  }
+  .panel-dark {
+    @apply rounded-card bg-ink-panel text-canvas;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200 ease-calm disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply btn bg-ink text-canvas hover:bg-ink/85;
+  }
+  .btn-secondary {
+    @apply btn border border-hairline bg-white text-ink hover:border-ink/30 hover:bg-white;
+  }
+  .btn-ghost {
+    @apply btn border border-transparent text-muted hover:text-ink;
+  }
+  .btn-deny {
+    @apply btn border border-deny/30 bg-white text-deny hover:bg-deny/[0.06];
+  }
+
+  .label {
+    @apply text-2xs font-medium uppercase tracking-[0.14em] text-muted;
+  }
+  .hairline-t {
+    @apply border-t border-hairline;
+  }
+}
+
+/* Focus ring, calm */
+*:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Thin scrollbars inside panels */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #d7d5cc transparent;
+}
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: #d7d5cc;
+  border-radius: 999px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

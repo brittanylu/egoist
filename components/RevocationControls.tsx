@@ -1,0 +1,106 @@
+'use client';
+
+/**
+ * Revocation. The holder can kill the whole tree, or one branch of it.
+ *
+ * Nothing cascades explicitly: `verifyChain` walks to the root, so revoking one
+ * Passport invalidates everything beneath it the instant the flag is set, and
+ * touches no sibling branch.
+ */
+import { descendantsOf } from '@/lib/passport';
+import { ACTOR_BY_ID } from '@/lib/seed';
+import { useDemo } from '@/lib/store';
+import { Chip, SectionHeading, cx } from './ui';
+import { useChainStatuses } from './useChainStatus';
+
+export function RevocationControls() {
+  const statuses = useChainStatuses();
+  const { registry, rootId, passportBySubject, revokePassport, reset } = useDemo();
+
+  const root = registry.passports[rootId];
+  const branchId = passportBySubject['agent-b'];
+  const branch = branchId ? registry.passports[branchId] : undefined;
+
+  if (!root) return null;
+
+  const label = (id: string) => ACTOR_BY_ID[id]?.label ?? id;
+  const statusOf = (id: string) => statuses[id]?.allowed ?? false;
+
+  const branchSubtree = branch ? [branch, ...descendantsOf(registry, branch.claims.id)] : [];
+  const others = Object.values(registry.passports).filter(
+    (p) => !branchSubtree.some((b) => b.claims.id === p.claims.id),
+  );
+
+  return (
+    <div className="card p-5">
+      <SectionHeading
+        eyebrow="Revocation"
+        title="Withdraw authority"
+        hint="Revoking a Passport invalidates its whole subtree, and nothing else."
+      />
+
+      <div className="mt-4 space-y-2.5">
+        <button
+          type="button"
+          className="btn-deny w-full justify-start"
+          disabled={root.claims.revoked}
+          onClick={() => revokePassport(root.claims.id)}
+        >
+          {root.claims.revoked ? 'Root revoked — everything is dark' : 'Revoke the root Passport'}
+        </button>
+
+        {branch && (
+          <button
+            type="button"
+            className="btn-deny w-full justify-start"
+            disabled={branch.claims.revoked}
+            onClick={() => revokePassport(branch.claims.id)}
+          >
+            {branch.claims.revoked
+              ? `${label(branch.claims.subject)}'s branch revoked`
+              : `Revoke ${label(branch.claims.subject)}'s branch`}
+          </button>
+        )}
+
+        <button type="button" className="btn-secondary w-full justify-start" onClick={reset}>
+          Reset demo
+        </button>
+      </div>
+
+      {/* Live effect, so the judge can see exactly which side of the tree died. */}
+      {branch && (
+        <div className="mt-4 border-t border-hairline pt-3">
+          <div className="label">Effect on the tree</div>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <div>
+              <div className="text-2xs uppercase tracking-[0.1em] text-muted">
+                {label(branch.claims.subject)} subtree
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {branchSubtree.map((p) => (
+                  <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'}>
+                    {label(p.claims.subject)}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-2xs uppercase tracking-[0.1em] text-muted">Unrelated branches</div>
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {others.map((p) => (
+                  <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'}>
+                    {label(p.claims.subject)}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+          </div>
+          <p className={cx('mt-3 text-[12px] leading-relaxed text-muted')}>
+            Revocation is verifier-side state, so it sits outside the issuer&rsquo;s signature: withdrawing a
+            Passport does not forge it, it retires it.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

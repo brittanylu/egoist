@@ -1,0 +1,102 @@
+'use client';
+
+import { useEffect } from 'react';
+import { Brand } from '@/components/Brand';
+import { ActionConsole } from '@/components/ActionConsole';
+import { ChainGraph } from '@/components/ChainGraph';
+import { DelegationSandbox } from '@/components/DelegationSandbox';
+import { HowItWorks } from '@/components/HowItWorks';
+import { PassportDrawer } from '@/components/PassportDrawer';
+import { ReceiptsLog } from '@/components/ReceiptsLog';
+import { RevocationControls } from '@/components/RevocationControls';
+import { ClockProvider, Pill, SectionHeading } from '@/components/ui';
+import { ensureSeeded, useDemo } from '@/lib/store';
+
+export default function Page() {
+  // Seeding mints real signatures with in-memory keys, so it happens on the client.
+  const seeded = useDemo((state) => state.seeded);
+  const reset = useDemo((state) => state.reset);
+  useEffect(() => {
+    ensureSeeded();
+  }, []);
+
+  return (
+    <ClockProvider>
+      <div className="mx-auto w-full max-w-[1240px] px-5 pb-16 pt-7 sm:px-8">
+        {/* Header */}
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <Brand />
+          <div className="flex items-center gap-3">
+            <Pill>Agents track</Pill>
+            <button type="button" className="btn-secondary" onClick={reset}>
+              Reset demo
+            </button>
+          </div>
+        </header>
+
+        {/* Hero */}
+        <section className="mt-14 max-w-[62ch]">
+          <h1 className="text-[38px] font-medium leading-[1.08] tracking-tightest sm:text-[52px]">
+            Trust should travel
+            <br />
+            without growing.
+          </h1>
+          <p className="mt-5 text-[15.5px] leading-relaxed text-muted">
+            An Ops Lead authorizes one agent to clean up three years of support tickets. That agent delegates, and its
+            delegate delegates again. Watch the authority get strictly narrower at every hop — then watch the last
+            agent try to exceed it.
+          </p>
+        </section>
+
+        {!seeded ? (
+          <div className="mt-12 card p-12 text-center text-[13px] text-muted">Minting the seed chain…</div>
+        ) : (
+          <>
+            {/* Chain + Passport detail */}
+            <section className="mt-12 grid gap-6 lg:grid-cols-[minmax(0,1fr)_368px]">
+              {/* min-w-0: the graph scrolls horizontally, and without this its
+                  min-content width would stretch the whole page. */}
+              <div className="card min-w-0 p-5">
+                <SectionHeading
+                  eyebrow="Chain of custody"
+                  title="One human permission, five Passports"
+                  hint="Each card shows the authority its Passport carries, against what the human granted. Struck-through chips were given up on the way down. Click any node to decode it."
+                />
+                <div className="mt-6">
+                  <ChainGraph />
+                </div>
+              </div>
+
+              <div className="lg:sticky lg:top-6 lg:self-start">
+                <PassportDrawer />
+              </div>
+            </section>
+
+            {/* The four moments */}
+            <section className="mt-6 grid gap-6 lg:grid-cols-3">
+              <div className="min-w-0 lg:col-span-2">
+                <ActionConsole />
+              </div>
+              <RevocationControls />
+              <div className="min-w-0 lg:col-span-2">
+                <DelegationSandbox />
+              </div>
+              <ReceiptsLog />
+            </section>
+
+            <section className="mt-6">
+              <HowItWorks />
+            </section>
+          </>
+        )}
+
+        <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-5 text-[12px] text-muted">
+          <span>AI Passport Ideathon · Agents track</span>
+          <span className="font-mono">
+            Ed25519 signatures · narrowing enforced in lib/passport.ts · verified at /api/verify
+          </span>
+        </footer>
+      </div>
+    </ClockProvider>
+  );
+}
