@@ -50,7 +50,7 @@ export default function Page() {
             <EgoistMark />
           </div>
           <div className="flex items-center gap-3">
-            <Pill>Agents track</Pill>
+            <Pill>Work Track</Pill>
             <button type="button" className="btn-secondary" onClick={reset}>
               Reset demo
             </button>

@@ -767,7 +767,7 @@ export function authorizeAction(
     return {
       ...base,
       kind: 'refusal',
-      detail: `${leaf.claims.subject}'s AI Passport permits actions: ${leaf.claims.actions.join(', ')}. It requested '${input.action}'. The request failed guard:requested-action at hop ${leafHop} — no ancestor AI Passport ever held '${input.action}', back to the root issued by ${rootIssuer}, so no child could inherit it. No action was taken; the request fell back to requiring human authority.`,
+      detail: `${leaf.claims.subject}'s AI Passport permits actions: ${leaf.claims.actions.join(', ')}. It requested '${input.action}'. The request failed guard:requested-action at hop ${leafHop} — '${input.action}' is not on this Passport, and a child AI Passport can only ever narrow what its parent handed down, so nothing on the chain back to ${rootIssuer} can restore it. No action was taken; the request fell back to requiring human authority.`,
       violatedField: 'actions',
       requested: input.action,
       permitted: leaf.claims.actions,
