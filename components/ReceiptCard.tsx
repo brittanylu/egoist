@@ -1,8 +1,9 @@
 'use client';
 
 /**
- * A receipt, allow or refusal, rendered as the same first-class object. A refusal
- * is not an error state: it is the record that a boundary a human set actually held.
+ * One audit entry, allow or refusal, rendered as the same first-class object. A
+ * refusal is not an error state: it is the record that a guard held and the request
+ * fell back to human authority.
  */
 import { formatTime, formatUsd } from '@/lib/authority';
 import { Receipt } from '@/lib/passport';
@@ -52,10 +53,8 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
       {receipt.kind === 'refusal' && (
         <div className="mt-3 grid gap-x-6 gap-y-2 rounded-md border border-deny/15 bg-surface p-3 sm:grid-cols-2">
           <div>
-            <div className="label text-deny/80">Blocked by</div>
-            <div className="mt-1 font-mono text-[12px]">
-              {receipt.checkName} · {receipt.violatedField}
-            </div>
+            <div className="label text-deny/80">Failed guard</div>
+            <div className="mt-1 font-mono text-[12px] text-deny">{receipt.guard}</div>
           </div>
           <div>
             <div className="label text-deny/80">At</div>
@@ -71,12 +70,15 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
             <div className="label text-deny/80">Permitted by inherited authority</div>
             <div className="mt-1 font-mono text-[12px]">{renderValue(receipt.permitted)}</div>
           </div>
+          <div className="sm:col-span-2">
+            <div className="label text-deny/80">Fell back to</div>
+            <div className="mt-1 font-mono text-[12px]">{receipt.fallback}</div>
+          </div>
           {!compact && (
             <div className="sm:col-span-2">
               <div className="label text-deny/80">Boundary set by</div>
-              <div className="mt-1 text-[12.5px]">
-                <span className="font-mono">{label(receipt.rootIssuer)}</span>, in the root Passport at the top of
-                this chain.
+              <div className="mt-1 font-mono text-[12px]">
+                {label(receipt.rootIssuer)} · root Passport · field {receipt.violatedField}
               </div>
             </div>
           )}
@@ -85,10 +87,14 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
 
       {receipt.kind === 'allow' && !compact && (
         <div className="mt-3 flex flex-wrap gap-1.5">
-          <Chip tone="allow">{receipt.verifiedHops} hops verified</Chip>
-          <Chip tone="allow">{formatUsd(receipt.budgetUsd)} budget</Chip>
+          <Chip tone="allow" className="chip-mono">
+            {receipt.verifiedHops} hops · all guards passed
+          </Chip>
+          <Chip tone="allow" className="chip-mono">
+            {formatUsd(receipt.budgetUsd)} budget
+          </Chip>
           {receipt.scopesUsed.map((scope) => (
-            <Chip key={scope} tone="allow">
+            <Chip key={scope} tone="allow" className="chip-mono">
               {scope}
             </Chip>
           ))}

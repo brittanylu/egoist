@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { lifecycleOf } from './authority';
 import { deterministicKeyPair } from './crypto';
 import {
   Passport,
@@ -16,7 +17,7 @@ import { HOUR, buildSeed } from './seed';
 
 const NOW = 1_700_000_000_000;
 
-describe('the narrowing invariant', () => {
+describe('the narrowing guards', () => {
   it('accepts a child that is strictly narrower than its parent', () => {
     const { registry, keys } = buildSeed(NOW);
     const parent = registry.passports['psp_agent_b'];
@@ -66,6 +67,7 @@ describe('the narrowing invariant', () => {
     if (result.ok) return;
     const violation = result.violations.find((v) => v.field === 'allowedDestinations');
     expect(violation).toBeDefined();
+    expect(violation!.guard).toBe('guard:destinations');
     expect(violation!.requested).toContain('external-webhook');
     expect(violation!.allowedByParent).toEqual(['internal-only']);
   });
@@ -97,6 +99,9 @@ describe('the narrowing invariant', () => {
     expect(fields).toContain('actions');
     expect(fields).toContain('budgetUsd');
     expect(fields).toContain('expiresAt');
+    expect(result.violations.map((v) => v.guard)).toEqual(
+      expect.arrayContaining(['guard:actions', 'guard:budget', 'guard:expiry']),
+    );
   });
 
   it('rejects context outside the parent scope but allows narrowing into a sub-scope', () => {
@@ -222,7 +227,7 @@ describe('verifyChain', () => {
     expect(result.brokenAt?.kind).toBe('signature');
   });
 
-  it('catches a validly-signed Passport that exceeds its parent', () => {
+  it('catches a validly-signed Passport that exceeds its parent, naming the guard', () => {
     // Agent B mints its own root-less "child" with real signing keys but broader
     // authority, then presents it. Verification re-derives the invariant and fails.
     const { registry, keys } = buildSeed(NOW);
@@ -254,8 +259,9 @@ describe('verifyChain', () => {
     const result = verifyChain(forged, withForged, NOW);
 
     expect(result.allowed).toBe(false);
-    expect(result.brokenAt?.kind).toBe('narrowing');
+    expect(result.brokenAt?.kind).toBe('guard');
     expect(result.violations.map((v) => v.field)).toContain('allowedDestinations');
+    expect(result.violations.map((v) => v.guard)).toContain('guard:destinations');
   });
 
   it('fails a chain whose Passport has expired', () => {
@@ -341,7 +347,7 @@ describe('revocation cascades to descendants only', () => {
   });
 });
 
-describe('authorizeAction receipts', () => {
+describe('authorizeAction audit entries', () => {
   it('allows the internal classification and traces authority to the human', () => {
     const { registry } = buildSeed(NOW);
     const receipt = authorizeAction(
@@ -356,7 +362,7 @@ describe('authorizeAction receipts', () => {
     expect(receipt.rootIssuer).toBe('ops-lead');
   });
 
-  it('refuses the external send and says exactly which constraint blocked it', () => {
+  it('refuses the external send, naming the guard it failed and what it fell back to', () => {
     const { registry } = buildSeed(NOW);
     const receipt = authorizeAction(
       registry.passports['psp_agent_c'],
@@ -370,13 +376,15 @@ describe('authorizeAction receipts', () => {
     // Agent C legitimately holds 'send', so the DESTINATION is what stops it — the
     // human allowed sending, but never externally, and no hop could add that.
     expect(receipt.violatedField).toBe('allowedDestinations');
-    expect(receipt.checkName).toBe('destination check');
+    expect(receipt.guard).toBe('guard:requested-destination');
     expect(receipt.blockedAtHop).toBe(3);
     expect(receipt.blockedAtSubject).toBe('agent-c');
     expect(receipt.permitted).toEqual(['internal-only']);
     expect(receipt.inheritedAuthority.allowedDestinations).toEqual(['internal-only']);
     expect(receipt.rootIssuer).toBe('ops-lead');
-    expect(receipt.detail).toContain('never allowed external transfer');
+    expect(receipt.detail).toContain('failed guard:requested-destination');
+    expect(receipt.detail).toContain('fell back to requiring human authority');
+    expect(receipt.fallback).toBe('human authority · ops-lead must re-issue');
   });
 
   it('refuses an action the leaf gave up on the way down', () => {
@@ -393,7 +401,7 @@ describe('authorizeAction receipts', () => {
     expect(receipt.kind).toBe('refusal');
     if (receipt.kind !== 'refusal') return;
     expect(receipt.violatedField).toBe('actions');
-    expect(receipt.checkName).toBe('action check');
+    expect(receipt.guard).toBe('guard:requested-action');
     expect(registry.passports['psp_root_ops_lead'].claims.actions).toContain('classify');
   });
 
@@ -422,7 +430,51 @@ describe('authorizeAction receipts', () => {
 
     expect(receipt.kind).toBe('refusal');
     if (receipt.kind !== 'refusal') return;
-    expect(receipt.checkName).toBe('revocation check');
+    expect(receipt.guard).toBe('guard:revocation');
+    expect(receipt.detail).toContain('fell back to requiring human authority');
+  });
+});
+
+describe('the lifecycle loop', () => {
+  it('reads draft → active → revoked off the chain, never off stored state', () => {
+    const { registry } = buildSeed(NOW);
+    const live = registry.passports['psp_agent_c'];
+
+    expect(lifecycleOf(live.claims, verifyChain(live, registry, NOW)).stage).toBe('active');
+
+    // Withdrawn by the holder, one hop up.
+    const after = revoke('psp_agent_b', registry);
+    const c = after.passports['psp_agent_c'];
+    expect(lifecycleOf(c.claims, verifyChain(c, after, NOW))).toEqual({
+      stage: 'revoked',
+      note: 'ancestor revoked',
+    });
+
+    // Lapsed rather than withdrawn — same terminal stage, different cause.
+    expect(lifecycleOf(live.claims, verifyChain(live, registry, NOW + 7 * HOUR))).toEqual({
+      stage: 'revoked',
+      note: 'expired',
+    });
+  });
+
+  it('leaves a Passport that fails a guard in draft — it was never in force', () => {
+    const { registry, keys } = buildSeed(NOW);
+    const parent = registry.passports['psp_agent_b'];
+    const forgedClaims: PassportClaims = {
+      ...registry.passports['psp_agent_c'].claims,
+      id: 'psp_forged',
+      allowedDestinations: ['internal-only', 'external-webhook'],
+    };
+    const forged: Passport = {
+      claims: forgedClaims,
+      signature: signPassportClaims(forgedClaims, parent.signature, keys['agent-b'].privateKeyHex),
+    };
+    const withForged = putPassport(registry, forged);
+
+    expect(lifecycleOf(forgedClaims, verifyChain(forged, withForged, NOW))).toEqual({
+      stage: 'draft',
+      note: 'failed guard:destinations',
+    });
   });
 });
 

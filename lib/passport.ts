@@ -8,12 +8,16 @@
  *
  *     A child Passport may carry LESS authority than its parent, never more.
  *
- * Authority is monotonically non-increasing down the chain, field by field. The
- * check lives in `narrowingViolations()` and is called from BOTH `delegate()`
+ * Authority is monotonically non-increasing down the chain, field by field. Each
+ * field is held by a GUARD — a single rule that either passes or fails, named on
+ * every refusal. The guards live in `guardViolations()` and run at BOTH `delegate()`
  * (mint time) and `verifyChain()` (verify time), so narrowing is structural, not
- * advisory: an agent that hand-crafts a broader Passport still fails verification,
- * because the verifier re-derives the invariant itself rather than trusting the
- * minter.
+ * advisory: an agent that hand-crafts a broader Passport still fails a guard at
+ * verification, because the verifier re-derives every guard itself rather than
+ * trusting the minter.
+ *
+ * A request that fails a guard is not an error. It falls back to requiring human
+ * authority: only the holder at the root can widen anything.
  *
  * Zero React imports. This is the SDK.
  */
@@ -81,7 +85,7 @@ export interface Passport {
   signature: string;
 }
 
-/** Every field the narrowing invariant guards. Used to route UI copy. */
+/** Every field a guard narrows. Used to route UI copy. */
 export type ViolationField =
   | 'actions'
   | 'contextScopes'
@@ -93,8 +97,26 @@ export type ViolationField =
   | 'issuer'
   | 'rootId';
 
+/**
+ * The guard that owns each field. Guards are named, not numbered: a refusal says
+ * which one it failed, and the name is stable enough to grep for in the audit log.
+ */
+export const GUARD_BY_FIELD: Record<ViolationField, string> = {
+  actions: 'guard:actions',
+  contextScopes: 'guard:context',
+  allowedDestinations: 'guard:destinations',
+  budgetUsd: 'guard:budget',
+  expiresAt: 'guard:expiry',
+  maxDepth: 'guard:depth',
+  canDelegate: 'guard:delegation',
+  issuer: 'guard:holder',
+  rootId: 'guard:root',
+};
+
 export interface Violation {
   field: ViolationField;
+  /** Which guard rejected it, e.g. `guard:destinations`. */
+  guard: string;
   requested: unknown;
   allowedByParent: unknown;
   message: string;
@@ -134,15 +156,27 @@ function uncoveredScopes(childScopes: readonly string[], parentScopes: readonly 
 }
 
 // ---------------------------------------------------------------------------
-// The invariant
+// The guards
 // ---------------------------------------------------------------------------
 
+/** Build a violation, stamping it with the guard that owns the field. */
+function failed(
+  field: ViolationField,
+  requested: unknown,
+  allowedByParent: unknown,
+  message: string,
+): Violation {
+  return { field, guard: GUARD_BY_FIELD[field], requested, allowedByParent, message };
+}
+
 /**
- * The single source of truth for "is this child within its parent's authority?"
+ * Every guard between a parent Passport and a proposed child. An empty array means
+ * the child is within its parent's authority.
+ *
  * Pure and time-independent: liveness (expiry/revocation at a given instant) is
- * checked separately, because a chain that was validly narrowed can still be dead.
+ * checked separately, because a chain that passed every guard can still be dead.
  */
-export function narrowingViolations(
+export function guardViolations(
   parent: PassportClaims,
   child: Omit<PassportClaims, 'id' | 'issuedAt' | 'revoked'> & Partial<Pick<PassportClaims, 'id'>>,
 ): Violation[] {
@@ -150,118 +184,116 @@ export function narrowingViolations(
 
   // Only the agent that HOLDS a Passport may delegate from it.
   if (child.issuer !== parent.subject) {
-    v.push({
-      field: 'issuer',
-      requested: child.issuer,
-      allowedByParent: parent.subject,
-      message: `Only ${parent.subject} holds this Passport, so only ${parent.subject} can delegate from it. Signed by ${child.issuer}.`,
-    });
+    v.push(
+      failed(
+        'issuer',
+        child.issuer,
+        parent.subject,
+        `Only ${parent.subject} holds this Passport, so only ${parent.subject} can delegate from it. Signed by ${child.issuer}.`,
+      ),
+    );
   }
 
   if (child.rootId !== parent.rootId) {
-    v.push({
-      field: 'rootId',
-      requested: child.rootId,
-      allowedByParent: parent.rootId,
-      message: `Child claims a different root of authority than its parent.`,
-    });
+    v.push(
+      failed('rootId', child.rootId, parent.rootId, `Child claims a different root of authority than its parent.`),
+    );
   }
 
   if (!parent.canDelegate) {
-    v.push({
-      field: 'canDelegate',
-      requested: 'delegate',
-      allowedByParent: 'canDelegate: false',
-      message: `${parent.subject}'s Passport does not permit delegation at all.`,
-    });
+    v.push(
+      failed(
+        'canDelegate',
+        'delegate',
+        'canDelegate: false',
+        `${parent.subject}'s Passport does not permit delegation at all.`,
+      ),
+    );
   }
 
   if (!parent.actions.includes('delegate')) {
-    v.push({
-      field: 'actions',
-      requested: 'delegate',
-      allowedByParent: parent.actions,
-      message: `${parent.subject} was not granted the 'delegate' action.`,
-    });
+    v.push(failed('actions', 'delegate', parent.actions, `${parent.subject} was not granted the 'delegate' action.`));
   }
 
   // actions ⊆ parent.actions
   const extraActions = isSubset(child.actions, parent.actions);
   if (extraActions.length) {
-    v.push({
-      field: 'actions',
-      requested: child.actions,
-      allowedByParent: parent.actions,
-      message: `Requests actions its parent never held: ${extraActions.join(', ')}.`,
-    });
+    v.push(
+      failed(
+        'actions',
+        child.actions,
+        parent.actions,
+        `Requests actions its parent never held: ${extraActions.join(', ')}.`,
+      ),
+    );
   }
 
   // contextScopes ⊆ parent.contextScopes (hierarchically)
   const extraScopes = uncoveredScopes(child.contextScopes, parent.contextScopes);
   if (extraScopes.length) {
-    v.push({
-      field: 'contextScopes',
-      requested: child.contextScopes,
-      allowedByParent: parent.contextScopes,
-      message: `Requests context outside its parent's scope: ${extraScopes.join(', ')}.`,
-    });
+    v.push(
+      failed(
+        'contextScopes',
+        child.contextScopes,
+        parent.contextScopes,
+        `Requests context outside its parent's scope: ${extraScopes.join(', ')}.`,
+      ),
+    );
   }
 
   // allowedDestinations ⊆ parent.allowedDestinations
   const extraDestinations = isSubset(child.allowedDestinations, parent.allowedDestinations);
   if (extraDestinations.length) {
-    v.push({
-      field: 'allowedDestinations',
-      requested: child.allowedDestinations,
-      allowedByParent: parent.allowedDestinations,
-      message: `Requests destinations its parent never held: ${extraDestinations.join(', ')}.`,
-    });
+    v.push(
+      failed(
+        'allowedDestinations',
+        child.allowedDestinations,
+        parent.allowedDestinations,
+        `Requests destinations its parent never held: ${extraDestinations.join(', ')}.`,
+      ),
+    );
   }
 
   // budget ≤ parent budget
   if (child.budgetUsd > parent.budgetUsd) {
-    v.push({
-      field: 'budgetUsd',
-      requested: child.budgetUsd,
-      allowedByParent: parent.budgetUsd,
-      message: `Requests $${child.budgetUsd} but its parent holds only $${parent.budgetUsd}.`,
-    });
+    v.push(
+      failed(
+        'budgetUsd',
+        child.budgetUsd,
+        parent.budgetUsd,
+        `Requests $${child.budgetUsd} but its parent holds only $${parent.budgetUsd}.`,
+      ),
+    );
   }
 
   // expiry ≤ parent expiry
   if (child.expiresAt > parent.expiresAt) {
-    v.push({
-      field: 'expiresAt',
-      requested: child.expiresAt,
-      allowedByParent: parent.expiresAt,
-      message: `Requests an expiry that outlives its parent's Passport.`,
-    });
+    v.push(
+      failed(
+        'expiresAt',
+        child.expiresAt,
+        parent.expiresAt,
+        `Requests an expiry that outlives its parent's Passport.`,
+      ),
+    );
   }
 
   // depth: each hop consumes one unit of the remaining delegation allowance
   if (parent.maxDepth < 1) {
-    v.push({
-      field: 'maxDepth',
-      requested: child.maxDepth,
-      allowedByParent: parent.maxDepth,
-      message: `Parent has no delegation hops left (maxDepth 0).`,
-    });
+    v.push(failed('maxDepth', child.maxDepth, parent.maxDepth, `Parent has no delegation hops left (maxDepth 0).`));
   } else if (child.maxDepth > parent.maxDepth - 1) {
-    v.push({
-      field: 'maxDepth',
-      requested: child.maxDepth,
-      allowedByParent: parent.maxDepth - 1,
-      message: `Requests ${child.maxDepth} further hops; at most ${parent.maxDepth - 1} remain below its parent.`,
-    });
+    v.push(
+      failed(
+        'maxDepth',
+        child.maxDepth,
+        parent.maxDepth - 1,
+        `Requests ${child.maxDepth} further hops; at most ${parent.maxDepth - 1} remain below its parent.`,
+      ),
+    );
   }
 
   if (child.canDelegate && child.maxDepth < 1) {
-    v.push({
-      field: 'canDelegate',
-      requested: true,
-      allowedByParent: false,
-      message: `Cannot both permit delegation and have zero hops remaining.`,
-    });
+    v.push(failed('canDelegate', true, false, `Cannot both permit delegation and have zero hops remaining.`));
   }
 
   return v;
@@ -327,8 +359,8 @@ export type DelegateResult =
   | { ok: false; violations: Violation[] };
 
 /**
- * Mint a child Passport. Rejects — structurally, with itemised violations — any
- * request that would carry more authority than the parent holds.
+ * Mint a child Passport. Rejects — structurally, with the failed guards named —
+ * any request that would carry more authority than the parent holds.
  */
 export function delegate(
   parent: Passport,
@@ -354,24 +386,28 @@ export function delegate(
     revoked: false,
   };
 
-  const violations = narrowingViolations(parent.claims, childClaims);
+  const violations = guardViolations(parent.claims, childClaims);
 
   // Liveness of the parent at mint time: a dead Passport delegates nothing.
   if (parent.claims.revoked) {
-    violations.push({
-      field: 'issuer',
-      requested: 'delegate from a revoked Passport',
-      allowedByParent: 'revoked',
-      message: `Parent Passport ${parent.claims.id} has been revoked.`,
-    });
+    violations.push(
+      failed(
+        'issuer',
+        'delegate from a revoked Passport',
+        'revoked',
+        `Parent Passport ${parent.claims.id} has been revoked.`,
+      ),
+    );
   }
   if (now > parent.claims.expiresAt) {
-    violations.push({
-      field: 'expiresAt',
-      requested: childClaims.expiresAt,
-      allowedByParent: parent.claims.expiresAt,
-      message: `Parent Passport expired at ${new Date(parent.claims.expiresAt).toISOString()}.`,
-    });
+    violations.push(
+      failed(
+        'expiresAt',
+        childClaims.expiresAt,
+        parent.claims.expiresAt,
+        `Parent Passport expired at ${new Date(parent.claims.expiresAt).toISOString()}.`,
+      ),
+    );
   }
 
   if (violations.length) return { ok: false, violations };
@@ -446,7 +482,7 @@ export function unrevokeAll(registry: Registry): Registry {
 // Verification
 // ---------------------------------------------------------------------------
 
-export type BreakKind = 'missing' | 'signature' | 'narrowing' | 'revoked' | 'expired' | 'root' | 'cycle';
+export type BreakKind = 'missing' | 'signature' | 'guard' | 'revoked' | 'expired' | 'root' | 'cycle';
 
 export interface LinkCheck {
   hop: number; // 0 = root
@@ -454,7 +490,8 @@ export interface LinkCheck {
   subject: string;
   issuer: string;
   signatureValid: boolean;
-  narrowingOk: boolean;
+  /** Every narrowing guard between this Passport and its parent passed. */
+  guardsOk: boolean;
   revoked: boolean;
   expired: boolean;
   violations: Violation[];
@@ -479,9 +516,9 @@ export interface VerificationResult {
  * Walk parentId → root, answering the verifier's two questions: "who is asking?"
  * and "where did their authority come from?"
  *
- * Checks, per link: the issuer's signature (hash-linked to the parent's), the
- * narrowing invariant against the parent's claims, expiry, and revocation
- * anywhere in the ancestry.
+ * Guards, per link: the issuer's signature (hash-linked to the parent's), every
+ * narrowing guard against the parent's claims, expiry, and revocation anywhere in
+ * the ancestry.
  */
 export function verifyChain(leaf: Passport, registry: Registry, now: number = Date.now()): VerificationResult {
   // 1. Walk up to the root, collecting the ancestry.
@@ -550,7 +587,7 @@ export function verifyChain(leaf: Passport, registry: Registry, now: number = Da
       ? verifyPassportSignature(p.claims, parent ? parent.signature : null, p.signature, issuerKey)
       : false;
 
-    const violations = parent ? narrowingViolations(parent.claims, p.claims) : [];
+    const violations = parent ? guardViolations(parent.claims, p.claims) : [];
     const expired = now > p.claims.expiresAt;
     const revoked = p.claims.revoked;
 
@@ -560,7 +597,7 @@ export function verifyChain(leaf: Passport, registry: Registry, now: number = Da
       subject: p.claims.subject,
       issuer: p.claims.issuer,
       signatureValid,
-      narrowingOk: violations.length === 0,
+      guardsOk: violations.length === 0,
       revoked,
       expired,
       violations,
@@ -588,8 +625,8 @@ export function verifyChain(leaf: Passport, registry: Registry, now: number = Da
           ? `This Passport expired at ${new Date(p.claims.expiresAt).toISOString()}.`
           : `An ancestor Passport (${p.claims.subject}, hop ${hop}) expired, which invalidates everything beneath it.`;
     } else if (violations.length) {
-      brokenAt = { hop, passportId: p.claims.id, subject: p.claims.subject, kind: 'narrowing' };
-      reason = `${p.claims.subject}'s Passport claims more authority than ${parent!.claims.subject} held: ${violations[0].message}`;
+      brokenAt = { hop, passportId: p.claims.id, subject: p.claims.subject, kind: 'guard' };
+      reason = `${p.claims.subject}'s Passport failed ${violations[0].guard}: it claims more authority than ${parent!.claims.subject} held. ${violations[0].message}`;
     }
   }
 
@@ -633,7 +670,10 @@ export interface RefusalReceipt extends ReceiptBase {
   /** 1-indexed hop the request was blocked at, counting the human as hop 0. */
   blockedAtHop: number;
   blockedAtSubject: string;
-  checkName: string;
+  /** The named guard the request failed, e.g. `guard:requested-destination`. */
+  guard: string;
+  /** What the request fell back to. Always human authority — nothing else can widen a chain. */
+  fallback: string;
   inheritedAuthority: {
     actions: Action[];
     contextScopes: string[];
@@ -653,9 +693,9 @@ export interface AuthorizeInput {
 }
 
 /**
- * The verifier. Given a leaf Passport and an attempted action, decide, and emit a
- * receipt either way. A refusal is not an error: it is a signed-off record that a
- * boundary set by a human held.
+ * The verifier. Given a leaf Passport and an attempted action, decide, and write an
+ * audit entry either way. A refusal is not an error: it is the record that a guard
+ * held and the request fell back to human authority.
  */
 export function authorizeAction(
   leaf: Passport,
@@ -687,29 +727,35 @@ export function authorizeAction(
     budgetUsd: leaf.claims.budgetUsd,
     expiresAt: leaf.claims.expiresAt,
   };
+  // Nothing below the root can widen a chain, so every refusal falls back here.
+  const fallback = `human authority · ${rootIssuer} must re-issue`;
 
   // 1. Is the chain itself sound, all the way to a human?
   if (!verification.allowed) {
     const broken = verification.brokenAt;
+    const guard =
+      broken?.kind === 'revoked'
+        ? 'guard:revocation'
+        : broken?.kind === 'expired'
+          ? 'guard:expiry'
+          : broken?.kind === 'signature'
+            ? 'guard:signature'
+            : broken?.kind === 'guard'
+              ? verification.violations[0]?.guard ?? 'guard:narrowing'
+              : 'guard:chain';
     return {
       ...base,
       kind: 'refusal',
-      detail: verification.reason ?? 'Chain of custody could not be verified.',
-      violatedField: broken?.kind === 'narrowing' ? verification.violations[0]?.field ?? 'chain' : 'chain',
+      detail: `${leaf.claims.subject} requested '${request}'. The request failed ${guard} at hop ${(broken?.hop ?? 0) + 1}. ${
+        verification.reason ?? 'Chain of custody could not be verified.'
+      } No action was taken; the request fell back to requiring human authority.`,
+      violatedField: broken?.kind === 'guard' ? verification.violations[0]?.field ?? 'chain' : 'chain',
       requested: request,
       permitted: 'a chain that verifies to an unexpired, unrevoked human root',
       blockedAtHop: (broken?.hop ?? 0) + 1,
       blockedAtSubject: broken?.subject ?? leaf.claims.subject,
-      checkName:
-        broken?.kind === 'revoked'
-          ? 'revocation check'
-          : broken?.kind === 'expired'
-            ? 'expiry check'
-            : broken?.kind === 'signature'
-              ? 'signature check'
-              : broken?.kind === 'narrowing'
-                ? 'narrowing check'
-                : 'chain integrity check',
+      guard,
+      fallback,
       inheritedAuthority: inherited,
     };
   }
@@ -721,13 +767,14 @@ export function authorizeAction(
     return {
       ...base,
       kind: 'refusal',
-      detail: `${leaf.claims.subject} attempted '${input.action}'. Inherited authority permits actions: ${leaf.claims.actions.join(', ')}. The Passport issued by ${rootIssuer} never granted '${input.action}' on this chain. Request blocked at hop ${leafHop} (action check).`,
+      detail: `${leaf.claims.subject} requested '${input.action}'. Inherited authority permits actions: ${leaf.claims.actions.join(', ')}. The request failed guard:requested-action at hop ${leafHop}. ${rootIssuer} never granted '${input.action}' on this chain, so no hop below could hold it. No action was taken; the request fell back to requiring human authority.`,
       violatedField: 'actions',
       requested: input.action,
       permitted: leaf.claims.actions,
       blockedAtHop: leafHop,
       blockedAtSubject: leaf.claims.subject,
-      checkName: 'action check',
+      guard: 'guard:requested-action',
+      fallback,
       inheritedAuthority: inherited,
     };
   }
@@ -737,13 +784,14 @@ export function authorizeAction(
     return {
       ...base,
       kind: 'refusal',
-      detail: `${leaf.claims.subject} attempted '${input.action} → ${input.destination}'. Inherited authority permits destinations: ${leaf.claims.allowedDestinations.join(', ')}. The root Passport issued by ${rootIssuer} never allowed external transfer, so no descendant could acquire it. Request blocked at hop ${leafHop} (destination check). This refusal is logged as a receipt.`,
+      detail: `${leaf.claims.subject} requested '${input.action} → ${input.destination}'. Inherited authority permits destinations: ${leaf.claims.allowedDestinations.join(', ')}. The request failed guard:requested-destination at hop ${leafHop}. The root Passport issued by ${rootIssuer} never allowed external transfer, so no descendant could acquire it. No data left the boundary; the request fell back to requiring human authority. The refusal is written to the audit log.`,
       violatedField: 'allowedDestinations',
       requested: input.destination,
       permitted: leaf.claims.allowedDestinations,
       blockedAtHop: leafHop,
       blockedAtSubject: leaf.claims.subject,
-      checkName: 'destination check',
+      guard: 'guard:requested-destination',
+      fallback,
       inheritedAuthority: inherited,
     };
   }
@@ -752,7 +800,7 @@ export function authorizeAction(
   return {
     ...base,
     kind: 'allow',
-    detail: `${leaf.claims.subject} performed '${input.action} → ${input.destination}'${input.note ? ` (${input.note})` : ''}. Authority traced through ${verification.chain.length} Passports to ${rootIssuer}; every hop verified and strictly narrower than its parent.`,
+    detail: `${leaf.claims.subject} performed '${input.action} → ${input.destination}'${input.note ? ` (${input.note})` : ''}. Authority traced through ${verification.chain.length} Passports to ${rootIssuer}; every guard passed at every hop, and each Passport is strictly narrower than its parent.`,
     verifiedHops: verification.chain.length,
     scopesUsed: leaf.claims.contextScopes,
     budgetUsd: leaf.claims.budgetUsd,
@@ -761,9 +809,9 @@ export function authorizeAction(
 }
 
 /**
- * A refused *delegation* is a receipt too. When an agent tries to mint a child
- * with more authority than it holds, that attempt is worth recording in the same
- * append-only log as refused actions.
+ * A refused *delegation* is an audit entry too. When an agent tries to mint a child
+ * with more authority than it holds, that attempt belongs in the same append-only
+ * log as refused actions and accesses.
  */
 export function delegationRefusalReceipt(
   parent: Passport,
@@ -777,6 +825,8 @@ export function delegationRefusalReceipt(
     ? [verification.chain[0].claims.issuer, ...verification.chain.map((p) => p.claims.subject)]
     : [parent.claims.subject];
   const primary = violations[0];
+  const rootIssuer = verification.chain[0]?.claims.issuer ?? 'unknown';
+  const guard = primary?.guard ?? 'guard:chain';
 
   return {
     id: newId('rcpt'),
@@ -787,17 +837,18 @@ export function delegationRefusalReceipt(
     request: `delegate → ${request.subject}`,
     chainPath: [...chainPath, request.subject],
     leafPassportId: parent.claims.id,
-    rootIssuer: verification.chain[0]?.claims.issuer ?? 'unknown',
+    rootIssuer,
     kind: 'refusal',
-    detail: `${parent.claims.subject} tried to mint a Passport for ${request.subject} carrying authority it does not hold. ${violations
+    detail: `${parent.claims.subject} tried to mint a Passport for ${request.subject} carrying authority it does not hold. The mint failed ${guard} at mint time. ${violations
       .map((v) => v.message)
-      .join(' ')} No Passport was created; the chain would not have verified.`,
+      .join(' ')} No Passport was created; the chain would not have verified. The request fell back to requiring human authority.`,
     violatedField: primary?.field ?? 'chain',
     requested: primary?.requested ?? request,
     permitted: primary?.allowedByParent ?? null,
     blockedAtHop: verification.chain.length,
     blockedAtSubject: parent.claims.subject,
-    checkName: 'narrowing check (at mint time)',
+    guard,
+    fallback: `human authority · ${rootIssuer} must re-issue`,
     inheritedAuthority: {
       actions: parent.claims.actions,
       contextScopes: parent.claims.contextScopes,

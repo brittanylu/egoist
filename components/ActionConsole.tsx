@@ -2,14 +2,14 @@
 
 /**
  * The judge drives Agent C, the leaf of the chain, and watches the verifier decide.
- * One action is inside its inherited authority. One is not, and never was — at any
+ * One action passes every guard. One fails a guard, and always would have — at any
  * point on the chain, all the way up to the human.
  */
 import { Action, Destination } from '@/lib/passport';
 import { ACTOR_BY_ID } from '@/lib/seed';
 import { useDemo } from '@/lib/store';
 import { ReceiptCard } from './ReceiptCard';
-import { Chip, SectionHeading, cx } from './ui';
+import { Chip, Em, SectionHeading, cx } from './ui';
 import { useChainStatuses } from './useChainStatus';
 
 interface Attempt {
@@ -26,7 +26,7 @@ const ATTEMPTS: Attempt[] = [
   {
     key: 'classify',
     title: 'Classify ticket internally',
-    hint: 'inside inherited authority',
+    hint: 'passes every guard',
     action: 'classify',
     destination: 'internal-only',
     note: 'ticket #4471',
@@ -35,7 +35,7 @@ const ATTEMPTS: Attempt[] = [
   {
     key: 'send',
     title: 'Send data to external service',
-    hint: 'never granted by the human',
+    hint: 'fails guard:requested-destination',
     action: 'send',
     destination: 'external-webhook',
     tone: 'deny',
@@ -57,11 +57,15 @@ export function ActionConsole() {
     <div className="card p-5">
       <SectionHeading
         eyebrow="Action console"
-        title={`${actor?.label ?? leaf.claims.subject} requests an action`}
-        hint="The verifier walks this chain back to the human root before answering. It takes no agent's word for its own permissions."
+        title={
+          <>
+            {actor?.label ?? leaf.claims.subject} requests an <Em>action</Em>.
+          </>
+        }
+        hint="The verifier walks this chain back to the human root and re-derives every guard. It takes no agent's word for its own permissions. A request that fails a guard falls back to requiring human authority."
         action={
           verifierMode && (
-            <Chip tone="dim">
+            <Chip tone="dim" className="chip-mono">
               decided by {verifierMode === 'service' ? '/api/verify' : 'local verifier'}
             </Chip>
           )
@@ -102,20 +106,20 @@ export function ActionConsole() {
 
       {verification && !verification.allowed && (
         <p className="mt-3 rounded-md border border-deny/20 bg-canvas p-2.5 text-[12.5px] leading-relaxed text-deny">
-          {actor?.label ?? leaf.claims.subject}&rsquo;s chain is currently broken, so every action it attempts will
-          be refused: {verification.reason}
+          {actor?.label ?? leaf.claims.subject}&rsquo;s chain fails a guard already, so every action it attempts is
+          refused: {verification.reason}
         </p>
       )}
 
       <div className="mt-4">
         {latest ? (
           <div key={latest.id}>
-            <div className="label mb-2">Latest receipt</div>
+            <div className="label mb-2">Latest audit entry</div>
             <ReceiptCard receipt={latest} />
           </div>
         ) : (
           <div className="rounded-card border border-dashed border-hairline p-5 text-center text-[12.5px] text-muted">
-            No receipts yet. Try the allowed action, then the one that was never granted.
+            The audit log is empty. Try the action that passes, then the one that fails a guard.
           </div>
         )}
       </div>

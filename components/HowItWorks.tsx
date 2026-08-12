@@ -2,7 +2,8 @@
 
 /**
  * The Agents-track checklist, said plainly and in one place: holder, agent,
- * verifier, scope, expiry, revocation, receipts, and what happens out of scope.
+ * verifier, guards, lifecycle, scope, expiry, revocation, audit log, and what
+ * happens out of scope.
  */
 import { Em, useNow } from './ui';
 import { formatCountdown } from '@/lib/authority';
@@ -27,7 +28,17 @@ export function HowItWorks() {
     {
       term: 'Verifier',
       detail:
-        'The internal ticket service, running at /api/verify. It holds no secrets, trusts no agent’s account of its own permissions, and re-derives every check from the chain.',
+        'The internal ticket service, running at /api/verify. It holds no secrets, trusts no agent’s account of its own permissions, and re-derives every guard from the chain.',
+    },
+    {
+      term: 'Guards',
+      detail:
+        'The narrowing rules, one per field: guard:actions, guard:context, guard:destinations, guard:budget, guard:expiry, guard:depth. Each runs at mint time and again at verify time. A request that fails a guard falls back to requiring human authority.',
+    },
+    {
+      term: 'Lifecycle',
+      detail:
+        'draft → active → revoked. A Passport that fails a guard never leaves draft; one that passes is active; one withdrawn or lapsed is revoked. The stage is derived from the chain, never stored.',
     },
     {
       term: 'Permission scope',
@@ -46,14 +57,14 @@ export function HowItWorks() {
         'The holder can retire the root or any single Passport. Everything beneath a revoked Passport stops verifying immediately; sibling branches are untouched.',
     },
     {
-      term: 'Action receipts',
+      term: 'Audit log',
       detail:
-        'Every decision produces a receipt naming the agent, the request, the chain it came through, and the constraint that decided it.',
+        'Append-only audit log of actions, accesses, and refusals. Every entry names the agent, the request, the chain it came through, the guard that decided it, and what it fell back to.',
     },
     {
       term: 'Outside scope',
       detail:
-        'Agent C’s attempt to send data to an external webhook is refused at the destination check and logged as a refusal receipt. The action does not happen.',
+        'Agent C’s attempt to send data to an external webhook fails guard:requested-destination and falls back to requiring human authority. The action does not happen; the refusal is written to the audit log.',
     },
   ];
 
@@ -67,8 +78,8 @@ export function HowItWorks() {
           </h2>
         </div>
         <p className="max-w-[46ch] text-[14px] leading-relaxed text-muted">
-          Four things hold this together: signatures that link each Passport to its parent, a subset check on every
-          field, an expiry on every hop, and a receipt for every decision.
+          Four things hold this together: signatures that link each Passport to its parent, a guard on every field, an
+          expiry on every hop, and an audit entry for every decision.
         </p>
       </div>
 

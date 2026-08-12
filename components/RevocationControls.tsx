@@ -1,16 +1,17 @@
 'use client';
 
 /**
- * Revocation. The holder can kill the whole tree, or one branch of it.
+ * Revocation — the last stage of the loop. The holder can retire the whole tree, or
+ * one branch of it.
  *
  * Nothing cascades explicitly: `verifyChain` walks to the root, so revoking one
- * Passport invalidates everything beneath it the instant the flag is set, and
+ * Passport moves everything beneath it to `revoked` the instant the flag is set, and
  * touches no sibling branch.
  */
 import { descendantsOf } from '@/lib/passport';
 import { ACTOR_BY_ID } from '@/lib/seed';
 import { useDemo } from '@/lib/store';
-import { Chip, SectionHeading, cx } from './ui';
+import { Chip, Em, SectionHeading, cx } from './ui';
 import { useChainStatuses } from './useChainStatus';
 
 export function RevocationControls() {
@@ -35,8 +36,12 @@ export function RevocationControls() {
     <div className="card p-5">
       <SectionHeading
         eyebrow="Revocation"
-        title="Withdraw authority"
-        hint="Revoking a Passport invalidates its whole subtree, and nothing else."
+        title={
+          <>
+            Withdraw <Em>authority</Em>.
+          </>
+        }
+        hint="Revoking moves a Passport from active to revoked, and takes its whole subtree with it. Nothing else moves."
       />
 
       <div className="mt-4 space-y-2.5">
@@ -78,8 +83,8 @@ export function RevocationControls() {
               </div>
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {branchSubtree.map((p) => (
-                  <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'}>
-                    {label(p.claims.subject)}
+                  <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'} className="chip-mono">
+                    {label(p.claims.subject)} · {statusOf(p.claims.id) ? 'active' : 'revoked'}
                   </Chip>
                 ))}
               </div>
@@ -88,8 +93,8 @@ export function RevocationControls() {
               <div className="text-2xs uppercase tracking-[0.1em] text-muted">Unrelated branches</div>
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {others.map((p) => (
-                  <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'}>
-                    {label(p.claims.subject)}
+                  <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'} className="chip-mono">
+                    {label(p.claims.subject)} · {statusOf(p.claims.id) ? 'active' : 'revoked'}
                   </Chip>
                 ))}
               </div>

@@ -7,11 +7,18 @@
  * disappearing. The judge sees what was given up at every hop, not just what is left.
  */
 import { useEffect, useRef } from 'react';
-import { authorityPercent, formatCountdown, formatUsd, formatWindow, shortScope } from '@/lib/authority';
+import {
+  authorityPercent,
+  formatCountdown,
+  formatUsd,
+  formatWindow,
+  lifecycleOf,
+  shortScope,
+} from '@/lib/authority';
 import { ALL_DESTINATIONS, Action, Passport, PassportClaims, Registry, childrenOf } from '@/lib/passport';
 import { ACTOR_BY_ID, EDGE_LABELS } from '@/lib/seed';
 import { useDemo } from '@/lib/store';
-import { AuthorityBar, Chip, Dot, cx, useNow } from './ui';
+import { AuthorityBar, Chip, StatusPill, cx, useNow } from './ui';
 import { StatusMap, useChainStatuses } from './useChainStatus';
 
 function scopeChips(claims: PassportClaims, root: PassportClaims) {
@@ -39,17 +46,10 @@ function NodeCard({
   const selected = selectedId === claims.id;
   const traced = tracedPath?.includes(claims.id) ?? false;
   const justRevoked = lastRevoked.includes(claims.id);
-
-  // Why it is broken, said briefly.
-  const brokenLabel = (() => {
-    if (ok) return null;
-    const kind = status?.brokenAt?.kind;
-    if (kind === 'revoked') return claims.revoked ? 'revoked' : 'ancestor revoked';
-    if (kind === 'expired') return status?.brokenAt?.passportId === claims.id ? 'expired' : 'ancestor expired';
-    if (kind === 'narrowing') return 'exceeds parent';
-    if (kind === 'signature') return 'signature invalid';
-    return 'chain broken';
-  })();
+  // Where this Passport sits in the loop right now, and why.
+  const lifecycle = status
+    ? lifecycleOf(claims, status)
+    : ({ stage: 'draft', note: 'not yet verified' } as const);
 
   return (
     <button
@@ -64,37 +64,31 @@ function NodeCard({
         justRevoked && !ok && 'animate-fade',
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div
-            className={cx(
-              'text-[14px] font-medium leading-tight tracking-tightest',
-              !ok && 'text-deny line-through decoration-deny/50',
-            )}
-          >
-            {actor?.label ?? claims.subject}
-          </div>
-          <div className="mt-0.5 truncate text-[11.5px] text-muted">{actor?.role ?? claims.task}</div>
+      <div className="min-w-0">
+        <div
+          className={cx(
+            'text-[14px] font-medium leading-tight tracking-tightest',
+            !ok && 'text-deny line-through decoration-deny/50',
+          )}
+        >
+          {actor?.label ?? claims.subject}
         </div>
-        <span className="mt-0.5 shrink-0" title={ok ? 'chain verified to the human root' : (status?.reason ?? '')}>
-          <Dot tone={ok ? 'allow' : 'deny'} />
-        </span>
+        <div className="mt-0.5 truncate text-[11.5px] text-muted">{actor?.role ?? claims.task}</div>
+      </div>
+
+      {/* Where it sits in the loop: draft → active → revoked. */}
+      <div className="mt-2.5" title={ok ? 'every guard passed, up to the human root' : (status?.reason ?? '')}>
+        <StatusPill stage={lifecycle.stage} note={lifecycle.note} />
       </div>
 
       <div className="mt-3">
         <AuthorityBar percent={ok ? authorityPercent(claims, root) : 0} broken={!ok} />
       </div>
 
-      {brokenLabel && (
-        <div className="mt-2.5 rounded-md border border-deny/20 px-2 py-1 text-2xs font-medium text-deny">
-          {brokenLabel}
-        </div>
-      )}
-
       {/* Actions: the root's full set, with everything this node gave up struck through. */}
       <div className="mt-3 flex flex-wrap gap-1">
         {(root.actions as Action[]).map((action) => (
-          <Chip key={action} tone={claims.actions.includes(action) ? 'default' : 'lost'}>
+          <Chip key={action} tone={claims.actions.includes(action) ? 'default' : 'lost'} className="chip-mono">
             {action}
           </Chip>
         ))}
@@ -106,6 +100,7 @@ function NodeCard({
           <Chip
             key={`${scope.label}-${i}`}
             tone={scope.held ? (scope.narrowed ? 'strong' : 'default') : 'lost'}
+            className="chip-mono"
             title={scope.narrowed ? 'narrowed into a sub-scope of the parent' : undefined}
           >
             {scope.label}
@@ -116,7 +111,11 @@ function NodeCard({
       {/* Destinations: all three that exist, so "external was never granted" is visible. */}
       <div className="mt-1.5 flex flex-wrap gap-1">
         {ALL_DESTINATIONS.map((destination) => (
-          <Chip key={destination} tone={claims.allowedDestinations.includes(destination) ? 'default' : 'lost'}>
+          <Chip
+            key={destination}
+            tone={claims.allowedDestinations.includes(destination) ? 'default' : 'lost'}
+            className="chip-mono"
+          >
             {destination}
           </Chip>
         ))}

@@ -2,15 +2,15 @@
 
 /**
  * Decoded Passport for the selected node: its claims, who signed it, what it hangs
- * off, and a live verdict from verifyChain(). "Trace authority to root" walks the
- * chain and highlights the path in the graph.
+ * off, where it sits in the trust loop, and which guards it passes right now.
+ * "Trace authority to root" walks the chain and highlights the path in the graph.
  */
 import { truncateHex } from '@/lib/crypto';
-import { formatCountdown, formatUsd, formatWindow } from '@/lib/authority';
+import { formatCountdown, formatUsd, formatWindow, lifecycleOf } from '@/lib/authority';
 import { verifyChain } from '@/lib/passport';
 import { ACTOR_BY_ID } from '@/lib/seed';
 import { useDemo } from '@/lib/store';
-import { Chip, KeyValue, SectionHeading, StatusBadge, cx, useNow } from './ui';
+import { Chip, KeyValue, SectionHeading, StatusPill, StatusTrack, cx, useNow } from './ui';
 import { useChainStatuses } from './useChainStatus';
 
 export function PassportDrawer() {
@@ -29,6 +29,7 @@ export function PassportDrawer() {
 
   const claims = passport.claims;
   const verification = statuses[claims.id] ?? verifyChain(passport, registry, now);
+  const lifecycle = lifecycleOf(claims, verification);
   const actor = ACTOR_BY_ID[claims.subject];
   const parent = claims.parentId ? registry.passports[claims.parentId] : undefined;
   const path = [verification.chain[0]?.claims.issuer, ...verification.chain.map((p) => p.claims.subject)].filter(
@@ -41,8 +42,12 @@ export function PassportDrawer() {
       <SectionHeading
         eyebrow="Passport"
         title={actor?.label ?? claims.subject}
-        action={<StatusBadge ok={verification.allowed} />}
+        action={<StatusPill stage={lifecycle.stage} note={lifecycle.note} />}
       />
+
+      <div className="mt-3 border-y border-hairline py-2">
+        <StatusTrack stage={lifecycle.stage} />
+      </div>
 
       <p className="mt-3 text-[13px] leading-relaxed text-muted">{claims.task}</p>
 
@@ -81,14 +86,16 @@ export function PassportDrawer() {
         <KeyValue label="Actions">
           <span className="flex flex-wrap gap-1">
             {claims.actions.map((a) => (
-              <Chip key={a}>{a}</Chip>
+              <Chip key={a} className="chip-mono">
+                {a}
+              </Chip>
             ))}
           </span>
         </KeyValue>
         <KeyValue label="Context">
           <span className="flex flex-wrap gap-1">
             {claims.contextScopes.map((s) => (
-              <Chip key={s} tone="strong">
+              <Chip key={s} tone="strong" className="chip-mono">
                 {s}
               </Chip>
             ))}
@@ -97,7 +104,9 @@ export function PassportDrawer() {
         <KeyValue label="Destinations">
           <span className="flex flex-wrap gap-1">
             {claims.allowedDestinations.map((d) => (
-              <Chip key={d}>{d}</Chip>
+              <Chip key={d} className="chip-mono">
+                {d}
+              </Chip>
             ))}
           </span>
         </KeyValue>
@@ -113,8 +122,9 @@ export function PassportDrawer() {
         <KeyValue label="Delegation" mono>
           {claims.canDelegate ? `permitted · ${claims.maxDepth} hop(s) remaining` : 'not permitted'}
         </KeyValue>
-        <KeyValue label="Revoked" mono>
-          <span className={cx(claims.revoked && 'text-deny')}>{claims.revoked ? 'yes' : 'no'}</span>
+        <KeyValue label="Stage" mono>
+          <span className={cx(lifecycle.stage === 'revoked' && 'text-deny')}>{lifecycle.stage}</span>
+          {lifecycle.note && <span className="ml-1.5 text-muted">· {lifecycle.note}</span>}
         </KeyValue>
         <KeyValue label="Signature" mono>
           <span title={passport.signature}>{truncateHex(passport.signature, 16, 10)}</span>
@@ -147,17 +157,17 @@ export function PassportDrawer() {
             ))}
           </div>
           <p className="mt-2 text-[11.5px] leading-relaxed text-muted">
-            Every hop verified against its parent. Authority never widened along this path.
+            Every guard passed at every hop. Authority never widened along this path.
           </p>
         </div>
       )}
 
-      {/* Per-hop verification detail: what the verifier actually checked. */}
+      {/* Per-hop guard detail: what the verifier actually re-derived. */}
       <div className="mt-4 border-t border-hairline pt-3">
-        <div className="label">Verifier checks, per hop</div>
+        <div className="label">Guards, per hop</div>
         <div className="mt-2 space-y-1.5">
           {verification.checks.map((check) => {
-            const hopOk = check.signatureValid && check.narrowingOk && !check.revoked && !check.expired;
+            const hopOk = check.signatureValid && check.guardsOk && !check.revoked && !check.expired;
             return (
               <div
                 key={check.passportId}
@@ -166,9 +176,9 @@ export function PassportDrawer() {
                 <span className="w-4 text-right text-ink">{check.hop}</span>
                 <span className={cx('w-16 truncate', hopOk ? 'text-ink' : 'text-deny')}>{check.subject}</span>
                 <span className={check.signatureValid ? 'text-allow' : 'text-deny'}>sig</span>
-                <span className={check.narrowingOk ? 'text-allow' : 'text-deny'}>⊆parent</span>
-                <span className={!check.expired ? 'text-allow' : 'text-deny'}>fresh</span>
-                <span className={!check.revoked ? 'text-allow' : 'text-deny'}>live</span>
+                <span className={check.guardsOk ? 'text-allow' : 'text-deny'}>narrow</span>
+                <span className={!check.expired ? 'text-allow' : 'text-deny'}>expiry</span>
+                <span className={!check.revoked ? 'text-allow' : 'text-deny'}>revocation</span>
               </div>
             );
           })}

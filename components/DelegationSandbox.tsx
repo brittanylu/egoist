@@ -3,10 +3,10 @@
 /**
  * Let the judge try to cheat.
  *
- * Pick a parent Passport, ask for more authority than it holds, and watch
- * `delegate()` refuse to mint it — with the violated field named. Narrowing is not
- * a rule agents are trusted to follow; the Passport simply cannot be created, and
- * had it been forged, the verifier would re-derive the same check and reject it.
+ * A draft Passport that asks for more authority than its parent holds never leaves
+ * `draft`: `delegate()` refuses to mint it, naming the guard it failed. Narrowing is
+ * not a rule agents are trusted to follow; the Passport simply cannot be created,
+ * and had it been forged, the verifier would re-derive the same guards and reject it.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { formatCountdown } from '@/lib/authority';
@@ -19,7 +19,7 @@ import {
 } from '@/lib/passport';
 import { ACTOR_BY_ID, HOUR } from '@/lib/seed';
 import { useDemo } from '@/lib/store';
-import { Chip, SectionHeading, cx, useNow } from './ui';
+import { Chip, Em, SectionHeading, StatusPill, cx, useNow } from './ui';
 
 interface Preset {
   key: string;
@@ -41,25 +41,25 @@ const PRESETS: Preset[] = [
   {
     key: 'external',
     title: 'Ask for external transfer',
-    hint: 'adds external-webhook',
+    hint: 'adds external-webhook · trips guard:destinations',
     apply: (d) => ({ ...d, destinations: ['internal-only', 'external-webhook'] }),
   },
   {
     key: 'budget',
     title: 'Ask for a bigger budget',
-    hint: 'raises to $500',
+    hint: 'raises to $500 · trips guard:budget',
     apply: (d) => ({ ...d, budgetUsd: 500 }),
   },
   {
     key: 'expiry',
     title: 'Ask to outlive the parent',
-    hint: 'stretches to 48h',
+    hint: 'stretches to 48h · trips guard:expiry',
     apply: (d) => ({ ...d, hours: 48 }),
   },
   {
     key: 'send',
     title: 'Ask for the send action',
-    hint: 'no one on this chain holds it',
+    hint: 'no one on this chain holds it · trips guard:actions',
     apply: (d) => ({ ...d, actions: Array.from(new Set([...d.actions, 'send' as Action])) }),
   },
 ];
@@ -124,8 +124,13 @@ export function DelegationSandbox() {
     <div className="card p-5">
       <SectionHeading
         eyebrow="Delegation sandbox"
-        title="Try to mint a child with more authority"
-        hint="Nothing here is enforced by convention. delegate() refuses to produce a Passport that exceeds its parent, so a broader one cannot be signed into existence."
+        title={
+          <>
+            Try to mint a child with more <Em>authority</Em>.
+          </>
+        }
+        hint="Nothing here is enforced by convention. Every guard runs at mint time, so a Passport broader than its parent cannot be signed into existence — it stays a draft."
+        action={<StatusPill stage="draft" note="unsigned request" />}
       />
 
       {/* Who is delegating */}
@@ -288,9 +293,9 @@ export function DelegationSandbox() {
         >
           {sandbox.ok ? (
             <>
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-allow px-2.5 py-[3px] text-2xs font-medium uppercase tracking-[0.14em] text-white">
-                  minted
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-allow px-2.5 py-[3px] font-mono text-2xs font-medium uppercase tracking-[0.14em] text-white">
+                  draft → active
                 </span>
                 <span className="text-[13px]">
                   {parentLabel} issued a Passport to{' '}
@@ -298,8 +303,8 @@ export function DelegationSandbox() {
                 </span>
               </div>
               <p className="mt-2.5 text-[13px] leading-relaxed text-ink/90">
-                Every requested field was within {parentLabel}&rsquo;s own authority, so the Passport was signed and
-                added to the chain. It now appears in the graph above.
+                Every guard passed against {parentLabel}&rsquo;s own authority, so the Passport was signed and added
+                to the chain. It is active, and appears in the graph above.
               </p>
               {sandbox.mintedId && (
                 <button
@@ -313,9 +318,9 @@ export function DelegationSandbox() {
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-deny px-2.5 py-[3px] text-2xs font-medium uppercase tracking-[0.14em] text-white">
-                  rejected
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-deny px-2.5 py-[3px] font-mono text-2xs font-medium uppercase tracking-[0.14em] text-white">
+                  stays draft
                 </span>
                 <span className="text-[13px]">
                   No Passport was created for{' '}
@@ -323,15 +328,17 @@ export function DelegationSandbox() {
                 </span>
               </div>
               <p className="mt-2.5 text-[13px] leading-relaxed text-ink/90">
-                {parentLabel} cannot grant what it does not hold. {sandbox.violations.length} constraint
-                {sandbox.violations.length === 1 ? '' : 's'} blocked the mint, and the attempt was written to the
-                receipts log.
+                {parentLabel} cannot grant what it does not hold. The request failed{' '}
+                {sandbox.violations.length} guard{sandbox.violations.length === 1 ? '' : 's'} and fell back to
+                requiring human authority. The attempt was written to the audit log.
               </p>
               <div className="mt-3 space-y-2">
                 {sandbox.violations.map((violation, i) => (
                   <div key={`${violation.field}-${i}`} className="rounded-md border border-deny/15 bg-canvas p-2.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Chip tone="deny">{violation.field}</Chip>
+                      <Chip tone="deny" className="chip-mono">
+                        {violation.guard}
+                      </Chip>
                       <span className="font-mono text-[11.5px] text-deny">
                         requested {Array.isArray(violation.requested) ? violation.requested.join(', ') : String(violation.requested)}
                       </span>

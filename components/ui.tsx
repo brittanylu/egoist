@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { STAGES, Stage } from '@/lib/authority';
 
 export function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ');
@@ -70,17 +71,49 @@ export function Dot({ tone }: { tone: 'allow' | 'deny' | 'muted' }) {
   return <span className={cx('inline-block h-[6px] w-[6px] shrink-0 rounded-full', colors[tone])} />;
 }
 
-export function StatusBadge({ ok, label }: { ok: boolean; label?: string }) {
+// ── Lifecycle ─────────────────────────────────────────────────────────────────
+const STAGE_TONE: Record<Stage, string> = {
+  draft: 'border-hairline text-muted',
+  active: 'border-allow/25 text-allow',
+  revoked: 'border-deny/25 text-deny',
+};
+
+const STAGE_DOT: Record<Stage, 'allow' | 'deny' | 'muted'> = {
+  draft: 'muted',
+  active: 'allow',
+  revoked: 'deny',
+};
+
+/** Where a Passport sits in the loop, said in one word. Cause follows, if there is one. */
+export function StatusPill({ stage, note }: { stage: Stage; note?: string }) {
   return (
     <span
       className={cx(
-        'inline-flex items-center gap-1.5 rounded-full border px-2 py-[3px] text-2xs font-medium',
-        ok ? 'border-allow/25 text-allow' : 'border-deny/25 text-deny',
+        'inline-flex items-center gap-1.5 rounded-full border px-2 py-[3px] font-mono text-2xs',
+        STAGE_TONE[stage],
       )}
+      title={note ? `${stage} — ${note}` : stage}
     >
-      <Dot tone={ok ? 'allow' : 'deny'} />
-      {label ?? (ok ? 'chain verified' : 'chain broken')}
+      <Dot tone={STAGE_DOT[stage]} />
+      {stage}
+      {note && <span className="text-muted">· {note}</span>}
     </span>
+  );
+}
+
+/** The whole loop, with the current stage marked. draft → active → revoked. */
+export function StatusTrack({ stage }: { stage: Stage }) {
+  return (
+    <div className="flex items-center gap-1.5 font-mono text-2xs text-muted">
+      {STAGES.map((s, i) => (
+        <span key={s} className="flex items-center gap-1.5">
+          <span className={cx(s === stage ? 'font-medium text-ink underline underline-offset-4' : 'text-muted/60')}>
+            {s}
+          </span>
+          {i < STAGES.length - 1 && <span className="text-muted/40">→</span>}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -91,8 +124,8 @@ export function SectionHeading({
   action,
 }: {
   eyebrow: string;
-  title: string;
-  hint?: string;
+  title: ReactNode;
+  hint?: ReactNode;
   action?: ReactNode;
 }) {
   return (

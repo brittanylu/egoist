@@ -3,11 +3,11 @@
 import { useEffect } from 'react';
 import { Brand } from '@/components/Brand';
 import { ActionConsole } from '@/components/ActionConsole';
+import { AuditLog } from '@/components/AuditLog';
 import { ChainGraph } from '@/components/ChainGraph';
 import { DelegationSandbox } from '@/components/DelegationSandbox';
 import { HowItWorks } from '@/components/HowItWorks';
 import { PassportDrawer } from '@/components/PassportDrawer';
-import { ReceiptsLog } from '@/components/ReceiptsLog';
 import { RevocationControls } from '@/components/RevocationControls';
 import { ClockProvider, Em, Pill, SectionHeading } from '@/components/ui';
 import { ensureSeeded, useDemo } from '@/lib/store';
@@ -57,8 +57,12 @@ export default function Page() {
               <div className="card min-w-0 p-5">
                 <SectionHeading
                   eyebrow="Chain of custody"
-                  title="One human permission, five Passports"
-                  hint="Each card shows the authority its Passport carries, against what the human granted. Struck-through chips were given up on the way down. Click any node to decode it."
+                  title={
+                    <>
+                      One human permission, five <Em>Passports</Em>.
+                    </>
+                  }
+                  hint="Each card shows the authority its Passport carries, against what the human granted, and where it sits in the loop: draft → active → revoked. Struck-through chips were given up on the way down. Click any node to decode it."
                 />
                 <div className="mt-6">
                   <ChainGraph />
@@ -79,7 +83,7 @@ export default function Page() {
               <div className="min-w-0 lg:col-span-2">
                 <DelegationSandbox />
               </div>
-              <ReceiptsLog />
+              <AuditLog />
             </section>
 
             <section className="mt-20">
@@ -91,7 +95,7 @@ export default function Page() {
         <footer className="mt-20 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-5 text-[12px] text-muted">
           <span>AI Passport Ideathon · Agents track</span>
           <span className="font-mono">
-            Ed25519 signatures · narrowing enforced in lib/passport.ts · verified at /api/verify
+            Ed25519 signatures · guards enforced in lib/passport.ts · verified at /api/verify
           </span>
         </footer>
       </div>

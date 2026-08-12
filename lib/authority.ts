@@ -2,7 +2,58 @@
  * Presentation-side derivations: how "wide" a Passport is, and time formatting.
  * Pure functions, no React — the UI reads these but the SDK does not depend on them.
  */
-import { ALL_ACTIONS, ALL_DESTINATIONS, PassportClaims } from './passport';
+import { ALL_ACTIONS, ALL_DESTINATIONS, PassportClaims, VerificationResult } from './passport';
+
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
+
+/**
+ * The trust loop a Passport moves through, in order.
+ *
+ *   draft    proposed or not in force — nothing may be done under it
+ *   active   signed, every guard passing, traceable to a live human root
+ *   revoked  withdrawn or lapsed — it was in force, and no longer is
+ *
+ * A Passport only ever moves forward. Nothing returns to `active` on its own; the
+ * holder has to issue again.
+ */
+export type Stage = 'draft' | 'active' | 'revoked';
+
+export const STAGES: Stage[] = ['draft', 'active', 'revoked'];
+
+export interface LifecycleState {
+  stage: Stage;
+  /** Terse cause, in guard/verifier terms. Empty when the stage says it all. */
+  note: string;
+}
+
+/**
+ * Where a Passport sits in the loop, derived — never stored.
+ *
+ * The split that matters: a Passport that fails a structural guard never reached
+ * `active`, so it is still a `draft`. Only authority that was genuinely in force
+ * can be `revoked`.
+ */
+export function lifecycleOf(claims: PassportClaims, verification: VerificationResult): LifecycleState {
+  if (verification.allowed) return { stage: 'active', note: '' };
+
+  const broken = verification.brokenAt;
+  const self = broken?.passportId === claims.id;
+
+  switch (broken?.kind) {
+    case 'revoked':
+      return { stage: 'revoked', note: self ? 'withdrawn by holder' : 'ancestor revoked' };
+    case 'expired':
+      return { stage: 'revoked', note: self ? 'expired' : 'ancestor expired' };
+    case 'guard':
+      return { stage: 'draft', note: `failed ${verification.violations[0]?.guard ?? 'a guard'}` };
+    case 'signature':
+      return { stage: 'draft', note: 'signature invalid' };
+    default:
+      return { stage: 'draft', note: 'no chain to a human root' };
+  }
+}
 
 /**
  * A rough composite of how much authority a Passport carries: actions and

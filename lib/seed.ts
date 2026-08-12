@@ -92,9 +92,9 @@ export function buildSeed(now: number = Date.now()): SeedResult {
   const mint = (parent: Passport, issuer: string, req: Parameters<typeof delegate>[1]): Passport => {
     const result = delegate(parent, req, keys[issuer], now);
     if (!result.ok) {
-      // The seed is by construction valid; if this ever fires the invariant changed.
+      // The seed is by construction valid; if this ever fires a guard changed.
       throw new Error(
-        `Seed delegation to ${req.subject} violated the narrowing invariant: ${result.violations
+        `Seed delegation to ${req.subject} failed ${result.violations[0]?.guard}: ${result.violations
           .map((v) => v.message)
           .join(' ')}`,
       );
