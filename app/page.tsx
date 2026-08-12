@@ -11,6 +11,7 @@ import { ReceiptsLog } from '@/components/ReceiptsLog';
 import { RevocationControls } from '@/components/RevocationControls';
 import { ClockProvider, Em, Pill, SectionHeading } from '@/components/ui';
 import { ensureSeeded, useDemo } from '@/lib/store';
+import Image from 'next/image';
 
 export default function Page() {
   // Seeding mints real signatures with in-memory keys, so it happens on the client.
@@ -36,6 +37,14 @@ export default function Page() {
 
         {/* Hero */}
         <section className="mt-20 max-w-[62ch] sm:mt-28">
+          <div className="mb-10 overflow-hidden rounded-2xl">
+            <Image
+              src="/egoist.svg"
+              alt="Egoist logo"
+              width={75}
+              height={50}
+            />
+          </div>
           <h1 className="display text-[46px] sm:text-[68px]">
             Stop permission <Em>laundering</Em>.
           </h1>

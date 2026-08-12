@@ -13,7 +13,7 @@
   "dependencies": {
     "@noble/ed25519": "^2.1.0",
     "@noble/hashes": "^1.5.0",
-    "next": "^15.1.0",
+    "next": "^16.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "zustand": "^5.0.2"
@@ -26,7 +26,7 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.1.10"
   },
   "allowScripts": {
     "esbuild@0.21.5": true
