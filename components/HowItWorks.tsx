@@ -7,6 +7,8 @@
  */
 import { Em, useNow } from './ui';
 import { formatCountdown } from '@/lib/authority';
+import { ACTOR_BY_ID } from '@/lib/seed';
+import { TEAM_NAME, isTeamMember } from '@/lib/team';
 import { useDemo } from '@/lib/store';
 
 export function HowItWorks() {
@@ -14,16 +16,21 @@ export function HowItWorks() {
   const { registry, rootId } = useDemo();
   const root = registry.passports[rootId];
 
+  const issuer = root?.claims.issuer ?? '';
+  const holder = ACTOR_BY_ID[issuer];
+  const holderPhrase = holder
+    ? `${holder.label}, ${holder.role}${isTeamMember(issuer) ? ` on the ${TEAM_NAME}` : ''}`
+    : 'the human holder';
+
   const items: Array<{ term: string; detail: string }> = [
     {
       term: 'Holder',
-      detail:
-        'The Ops Lead — a human. They hold the signing key, issue the root Passport, and are the only party who can widen anything.',
+      detail: `${holderPhrase} — a person, not a role account. They hold the signing key, issue the root Passport from the team dashboard, and are the only party who can widen anything. No agent can create authority; it can only inherit a narrower slice of someone else's.`,
     },
     {
-      term: 'Agents',
+      term: 'Agents and subagents',
       detail:
-        'Agent A orchestrates triage; B de-duplicates; C classifies; D summarizes; E drafts the digest. Each holds its own Passport and its own key.',
+        'Claude Code is the primary agent — the one the human handed the task to. It spawns a dedup subagent and a summarizer subagent; those spawn a classifier and a digest subagent in turn. Every node is badged with its tier and railed in that tier’s colour, so a subagent is never mistaken for the agent that spawned it. Each holds its own Passport and its own signing key.',
     },
     {
       term: 'Verifier',
@@ -64,7 +71,7 @@ export function HowItWorks() {
     {
       term: 'Outside scope',
       detail:
-        'Agent C’s attempt to send data to an external webhook fails guard:requested-destination and falls back to requiring human authority. The action does not happen; the refusal is written to the audit log.',
+        'The classifier subagent’s attempt to send data to an external webhook fails guard:requested-destination and falls back to requiring human authority. The action does not happen; the refusal is written to the audit log.',
     },
   ];
 
@@ -93,9 +100,9 @@ export function HowItWorks() {
       </dl>
 
       <p className="mt-10 max-w-[70ch] border-t border-hairline pt-6 text-[15px] leading-relaxed text-ink">
-        This is for an operations lead, who needs to prove to every downstream service that an agent&rsquo;s
-        authority came from them and never grew — so work gets delegated safely without giving away more context than
-        necessary.
+        This is for an operations lead on a real team, who needs to prove to every downstream service that an
+        agent&rsquo;s authority came from a named person and never grew — so work gets delegated safely without giving
+        away more context than necessary.
       </p>
     </div>
   );

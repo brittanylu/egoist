@@ -6,10 +6,12 @@
   --bg: #ffffff;
   --bg-soft: #fafaf8;
   --text: #0a0a0a;
-  --muted: #6b7280;
-  --border: #ececec;
+  --muted: #4b5563;
+  --border: #d6d6d6;
   --allow: #15803d;
   --deny: #b91c1c;
+  --tier-agent: #9a4f26;
+  --tier-sub: #3a4e8c;
 }
 
 html,
@@ -37,8 +39,10 @@ body {
   }
 
   /* ── Chips ───────────────────────────────────────────────────────────── */
+  /* whitespace-nowrap: a chip is a single token. Wrapping inside the border makes
+     the pill look crowded and breaks the row rhythm — let the row wrap instead. */
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border border-hairline bg-canvas px-2 py-[3px] text-2xs leading-none text-ink transition-all duration-300 ease-calm;
+    @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-hairline bg-canvas px-2 py-[3px] text-2xs leading-none text-ink transition-all duration-300 ease-calm;
   }
   .chip-strong {
     @apply border-ink/25 font-medium text-ink;
@@ -82,6 +86,36 @@ body {
   .label {
     @apply text-2xs font-medium uppercase tracking-[0.14em] text-muted;
   }
+
+  /* ── Credential cards ────────────────────────────────────────────────────
+     A Passport card turns over the way a real one does. The scene holds the
+     perspective, the inner element rotates, and the two faces sit in the same
+     grid cell so the card keeps one height whichever way round it is. */
+  .flip-scene {
+    perspective: 1600px;
+  }
+  .flip-inner {
+    @apply grid h-full w-full transition-transform duration-500 ease-calm;
+    transform-style: preserve-3d;
+  }
+  .flip-inner.is-flipped {
+    transform: rotateY(180deg);
+  }
+  .flip-face {
+    /* Same cell, stacked: the taller face sets the height for both. */
+    grid-area: 1 / 1;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .flip-face-back {
+    transform: rotateY(180deg);
+  }
+
+  /* The diagonal stamp struck across a withdrawn or refused credential. */
+  .stamp {
+    @apply pointer-events-none select-none rounded-md border-[3px] px-5 py-2 font-mono text-[22px] font-medium uppercase tracking-[0.18em];
+    transform: rotate(-14deg);
+  }
 }
 
 *:focus-visible {
@@ -97,14 +131,14 @@ body {
 /* Thin scrollbars inside panels */
 .scroll-thin {
   scrollbar-width: thin;
-  scrollbar-color: #dcdcdc transparent;
+  scrollbar-color: #bdbdbd transparent;
 }
 .scroll-thin::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 .scroll-thin::-webkit-scrollbar-thumb {
-  background: #dcdcdc;
+  background: #bdbdbd;
   border-radius: 999px;
 }
 .scroll-thin::-webkit-scrollbar-track {

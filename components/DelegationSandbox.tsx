@@ -73,11 +73,11 @@ export function DelegationSandbox() {
     [registry.passports],
   );
 
-  const [parentId, setParentId] = useState<string>(passportBySubject['agent-b'] ?? delegable[0]?.claims.id ?? '');
+  const [parentId, setParentId] = useState<string>(passportBySubject['dedup-subagent'] ?? delegable[0]?.claims.id ?? '');
   const parent = registry.passports[parentId] ?? delegable[0];
 
   const [draft, setDraft] = useState<Draft>({
-    subject: 'agent-x',
+    subject: 'new-subagent',
     actions: [],
     destinations: [],
     budgetUsd: 0,
@@ -91,7 +91,7 @@ export function DelegationSandbox() {
     if (!parent) return;
     const remainingHours = Math.max(0, (parent.claims.expiresAt - Date.now()) / HOUR);
     setDraft({
-      subject: 'agent-x',
+      subject: 'new-subagent',
       actions: parent.claims.actions.filter((a) => a !== 'delegate'),
       destinations: [...parent.claims.allowedDestinations],
       budgetUsd: Math.max(1, Math.floor(parent.claims.budgetUsd / 4)),
@@ -107,7 +107,7 @@ export function DelegationSandbox() {
     list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
   const request: DelegationRequest = {
-    subject: draft.subject.trim() || 'agent-x',
+    subject: draft.subject.trim() || 'new-subagent',
     task: 'Sandbox delegation requested by the judge',
     actions: draft.actions,
     contextScopes: [...parent.claims.contextScopes],
@@ -151,11 +151,11 @@ export function DelegationSandbox() {
           </select>
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="label">New agent</span>
+          <span className="label">New subagent</span>
           <input
             value={draft.subject}
             onChange={(event) => setDraft((d) => ({ ...d, subject: event.target.value }))}
-            className="w-[120px] rounded-md border border-hairline bg-canvas px-2.5 py-1.5 font-mono text-[13px]"
+            className="w-[150px] rounded-md border border-hairline bg-canvas px-2.5 py-1.5 font-mono text-[13px]"
           />
         </label>
         <div className="ml-auto text-right font-mono text-[11px] leading-relaxed text-muted">
@@ -294,7 +294,7 @@ export function DelegationSandbox() {
           {sandbox.ok ? (
             <>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-allow px-2.5 py-[3px] font-mono text-2xs font-medium uppercase tracking-[0.14em] text-white">
+                <span className="shrink-0 whitespace-nowrap rounded-full bg-allow px-2.5 py-[3px] font-mono text-2xs font-medium uppercase tracking-[0.14em] text-white">
                   draft → active
                 </span>
                 <span className="text-[13px]">
@@ -319,7 +319,7 @@ export function DelegationSandbox() {
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-deny px-2.5 py-[3px] font-mono text-2xs font-medium uppercase tracking-[0.14em] text-white">
+                <span className="shrink-0 whitespace-nowrap rounded-full bg-deny px-2.5 py-[3px] font-mono text-2xs font-medium uppercase tracking-[0.14em] text-white">
                   stays draft
                 </span>
                 <span className="text-[13px]">

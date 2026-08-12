@@ -8,7 +8,8 @@
 import { formatTime, formatUsd } from '@/lib/authority';
 import { Receipt } from '@/lib/passport';
 import { ACTOR_BY_ID } from '@/lib/seed';
-import { Chip, cx } from './ui';
+import { holderLine, isTeamMember } from '@/lib/team';
+import { Chip, TIER_STYLE, cx } from './ui';
 
 function label(id: string) {
   return ACTOR_BY_ID[id]?.label ?? id;
@@ -35,7 +36,7 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
         <div className="flex items-center gap-2">
           <span
             className={cx(
-              'rounded-full px-2.5 py-[3px] text-2xs font-medium uppercase tracking-[0.14em]',
+              'shrink-0 whitespace-nowrap rounded-full px-2.5 py-[3px] text-2xs font-medium uppercase tracking-[0.14em]',
               allowed ? 'bg-allow text-white' : 'bg-deny text-white',
             )}
           >
@@ -77,8 +78,11 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
           {!compact && (
             <div className="sm:col-span-2">
               <div className="label text-deny/80">Boundary set by</div>
+              {/* Named down to the person and the team. A refusal that cannot say whose
+                  decision it was is just an error message. */}
               <div className="mt-1 font-mono text-[12px]">
-                {label(receipt.rootIssuer)} · root Passport · field {receipt.violatedField}
+                {isTeamMember(receipt.rootIssuer) ? holderLine(receipt.rootIssuer) : label(receipt.rootIssuer)} · root
+                Passport · field {receipt.violatedField}
               </div>
             </div>
           )}
@@ -104,8 +108,10 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
       <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-hairline pt-2.5 font-mono text-[11px] text-muted">
         {receipt.chainPath.map((id, i) => (
           <span key={`${id}-${i}`} className="flex items-center gap-1.5">
-            <span className={i === 0 ? 'text-ink' : undefined}>{label(id)}</span>
-            {i < receipt.chainPath.length - 1 && <span className="text-muted/50">→</span>}
+            {/* Tinted by tier, so the hop where a human stops and the machines start
+                is visible without reading the names. */}
+            <span className={TIER_STYLE[ACTOR_BY_ID[id]?.kind ?? 'subagent'].text}>{label(id)}</span>
+            {i < receipt.chainPath.length - 1 && <span className="text-muted/75">→</span>}
           </span>
         ))}
         <span className="ml-auto">{receipt.id.slice(0, 14)}</span>

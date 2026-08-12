@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * The judge drives Agent C, the leaf of the chain, and watches the verifier decide.
+ * The judge drives the classifier subagent — the leaf of the chain — and watches the
+ * verifier decide.
  * One action passes every guard. One fails a guard, and always would have — at any
  * point on the chain, all the way up to the human.
  */
@@ -22,25 +23,20 @@ interface Attempt {
   tone: 'primary' | 'deny';
 }
 
-const ATTEMPTS: Attempt[] = [
-  {
-    key: 'classify',
-    title: 'Classify ticket internally',
-    hint: 'passes every guard',
-    action: 'classify',
-    destination: 'internal-only',
-    note: 'ticket #4471',
-    tone: 'primary',
-  },
-  {
-    key: 'send',
-    title: 'Send data to external service',
-    hint: 'fails guard:requested-destination',
-    action: 'send',
-    destination: 'external-webhook',
-    tone: 'deny',
-  },
-];
+/**
+ * The internal action to offer, and what to call it. Which one appears depends on
+ * what the leaf actually inherited — a human who never ticked "Classify" produces a
+ * chain where no agent can classify, and the console should not pretend otherwise.
+ */
+const INTERNAL_ATTEMPTS: Partial<Record<Action, { title: string; note: string }>> = {
+  classify: { title: 'Classify ticket internally', note: 'ticket #4471' },
+  write: { title: 'Write the internal digest', note: 'digest draft' },
+  read: { title: 'Read ticket text internally', note: 'ticket #4471' },
+  send: { title: 'Send results internally', note: 'theme summary' },
+};
+
+/** Preference order: the most characteristic thing this agent could do, first. */
+const INTERNAL_ORDER: Action[] = ['classify', 'write', 'read', 'send'];
 
 export function ActionConsole() {
   const statuses = useChainStatuses();
@@ -52,6 +48,40 @@ export function ActionConsole() {
 
   const actor = ACTOR_BY_ID[leaf.claims.subject];
   const verification = statuses[leafId];
+
+  // One action inside what it inherited, one outside. The second is only a refusal
+  // because a person left external transfer off the root grant — if they turned it on,
+  // it passes, and saying so is more honest than a button that always fails.
+  const passAction = INTERNAL_ORDER.find((a) => leaf.claims.actions.includes(a)) ?? 'read';
+  const internal = INTERNAL_ATTEMPTS[passAction]!;
+  const holdsSend = leaf.claims.actions.includes('send');
+  const externalGranted = leaf.claims.allowedDestinations.includes('external-webhook');
+
+  const attempts: Attempt[] = [
+    {
+      key: 'internal',
+      title: internal.title,
+      hint: leaf.claims.actions.includes(passAction)
+        ? 'passes every guard'
+        : 'nothing internal was granted — fails guard:requested-action',
+      action: passAction,
+      destination: 'internal-only',
+      note: internal.note,
+      tone: 'primary',
+    },
+    {
+      key: 'external',
+      title: 'Send data to external service',
+      hint: !holdsSend
+        ? 'fails guard:requested-action'
+        : externalGranted
+          ? 'allowed — a human put external transfer on the root grant'
+          : 'fails guard:requested-destination',
+      action: 'send',
+      destination: 'external-webhook',
+      tone: holdsSend && externalGranted ? 'primary' : 'deny',
+    },
+  ];
 
   return (
     <div className="card p-5">
@@ -65,15 +95,18 @@ export function ActionConsole() {
         hint="The verifier walks this chain back to the human root and re-derives every guard. It takes no agent's word for its own permissions. A request that fails a guard falls back to requiring human authority."
         action={
           verifierMode && (
-            <Chip tone="dim" className="chip-mono">
-              decided by {verifierMode === 'service' ? '/api/verify' : 'local verifier'}
+            <Chip tone="dim" className="px-2.5">
+              decided by
+              <span className="chip-mono text-ink">
+                {verifierMode === 'service' ? '/api/verify' : 'local verifier'}
+              </span>
             </Chip>
           )
         }
       />
 
       <div className="mt-4 flex flex-wrap gap-2.5">
-        {ATTEMPTS.map((item) => {
+        {attempts.map((item) => {
           const key = `${leafId}:${item.action}:${item.destination}`;
           const pending = pendingAction === key;
           return (

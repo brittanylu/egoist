@@ -646,7 +646,7 @@ export interface ReceiptBase {
   destination: Destination;
   /** Human-readable request, e.g. "send → external-webhook". */
   request: string;
-  /** root → leaf identities, e.g. ['ops-lead','agent-a','agent-b','agent-c']. */
+  /** root → leaf identities, e.g. ['ops-lead','claude-code','dedup-subagent','classifier-subagent']. */
   chainPath: string[];
   leafPassportId: string;
   rootIssuer: string;

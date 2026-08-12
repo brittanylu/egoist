@@ -8,17 +8,28 @@ import { ChainGraph } from '@/components/ChainGraph';
 import { DelegationSandbox } from '@/components/DelegationSandbox';
 import { HowItWorks } from '@/components/HowItWorks';
 import { PassportDrawer } from '@/components/PassportDrawer';
+import { PassportWallet } from '@/components/PassportWallet';
 import { RevocationControls } from '@/components/RevocationControls';
+import { Tabs } from '@/components/Tabs';
+import { TeamDashboard } from '@/components/TeamDashboard';
+import { Toast } from '@/components/Toast';
 import { ClockProvider, Em, Pill, SectionHeading } from '@/components/ui';
+import { ACTOR_BY_ID } from '@/lib/seed';
+import { TEAM_NAME, isTeamMember } from '@/lib/team';
 import { ensureSeeded, useDemo } from '@/lib/store';
 
 export default function Page() {
   // Seeding mints real signatures with in-memory keys, so it happens on the client.
   const seeded = useDemo((state) => state.seeded);
+  const tab = useDemo((state) => state.tab);
   const reset = useDemo((state) => state.reset);
+  const issuer = useDemo((state) => state.registry.passports[state.rootId]?.claims.issuer ?? '');
   useEffect(() => {
     ensureSeeded();
   }, []);
+
+  const holder = ACTOR_BY_ID[issuer];
+  const holderName = holder?.label ?? 'an operations lead';
 
   return (
     <ClockProvider>
@@ -40,18 +51,32 @@ export default function Page() {
             Stop permission <Em>laundering</Em>.
           </h1>
           <p className="mt-7 max-w-[58ch] text-[16px] leading-relaxed text-muted">
-            An Ops Lead authorizes one agent to clean up three years of support tickets. That agent delegates, and its
-            delegate delegates again. Watch the authority get strictly narrower at every hop — then watch the last
-            agent try to exceed it.
+            {holderName}
+            {holder && isTeamMember(issuer) ? `, ${holder.role} on the ${TEAM_NAME},` : ''} authorizes Claude Code to
+            clean up three years of support tickets. Claude Code spawns subagents, and those spawn subagents of their
+            own. Watch the authority get strictly narrower at every hop — then watch the last subagent try to exceed
+            it.
           </p>
         </section>
 
+        <div className="mt-12">
+          <Tabs />
+        </div>
+
         {!seeded ? (
           <div className="card mt-20 p-16 text-center text-[13px] text-muted">Minting the seed chain…</div>
+        ) : tab === 'dashboard' ? (
+          <section className="mt-8">
+            <TeamDashboard />
+          </section>
+        ) : tab === 'passport' ? (
+          <section className="mt-8">
+            <PassportWallet />
+          </section>
         ) : (
           <>
             {/* Chain + Passport detail */}
-            <section className="mt-20 grid gap-6 lg:grid-cols-[minmax(0,1fr)_368px]">
+            <section className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_368px]">
               {/* min-w-0: the graph scrolls horizontally, and without this its
                   min-content width would stretch the whole page. */}
               <div className="card min-w-0 p-5">
@@ -99,6 +124,8 @@ export default function Page() {
           </span>
         </footer>
       </div>
+
+      <Toast />
     </ClockProvider>
   );
 }

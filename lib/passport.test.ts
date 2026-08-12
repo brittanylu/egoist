@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { lifecycleOf } from './authority';
+import { buildMrz, lifecycleOf, mrzCheckDigit } from './authority';
 import { deterministicKeyPair } from './crypto';
 import {
   Passport,
   PassportClaims,
+  RefusalReceipt,
   authorizeAction,
   delegate,
   issueRoot,
@@ -13,14 +14,15 @@ import {
   signPassportClaims,
   verifyChain,
 } from './passport';
-import { HOUR, buildSeed } from './seed';
+import { ACTOR_BY_ID, DEFAULT_TEMPLATE, HOUR, TASK_TEMPLATES, buildSeed } from './seed';
+import { AuthorityForm } from './team';
 
 const NOW = 1_700_000_000_000;
 
 describe('the narrowing guards', () => {
   it('accepts a child that is strictly narrower than its parent', () => {
     const { registry, keys } = buildSeed(NOW);
-    const parent = registry.passports['psp_agent_b'];
+    const parent = registry.passports['psp_dedup'];
 
     const result = delegate(
       parent,
@@ -35,7 +37,7 @@ describe('the narrowing guards', () => {
         canDelegate: false,
         maxDepth: 0,
       },
-      keys['agent-b'],
+      keys['dedup-subagent'],
       NOW,
     );
 
@@ -44,7 +46,7 @@ describe('the narrowing guards', () => {
 
   it('rejects a child asking for a destination its parent never held', () => {
     const { registry, keys } = buildSeed(NOW);
-    const parent = registry.passports['psp_agent_b'];
+    const parent = registry.passports['psp_dedup'];
 
     const result = delegate(
       parent,
@@ -59,7 +61,7 @@ describe('the narrowing guards', () => {
         canDelegate: false,
         maxDepth: 0,
       },
-      keys['agent-b'],
+      keys['dedup-subagent'],
       NOW,
     );
 
@@ -74,7 +76,7 @@ describe('the narrowing guards', () => {
 
   it('rejects a child asking for a bigger budget, a later expiry, or extra actions', () => {
     const { registry, keys } = buildSeed(NOW);
-    const parent = registry.passports['psp_agent_b']; // $20, +12h, no 'write'
+    const parent = registry.passports['psp_dedup']; // $20, +12h, no 'write'
 
     const result = delegate(
       parent,
@@ -89,7 +91,7 @@ describe('the narrowing guards', () => {
         canDelegate: false,
         maxDepth: 0,
       },
-      keys['agent-b'],
+      keys['dedup-subagent'],
       NOW,
     );
 
@@ -106,7 +108,7 @@ describe('the narrowing guards', () => {
 
   it('rejects context outside the parent scope but allows narrowing into a sub-scope', () => {
     const { registry, keys } = buildSeed(NOW);
-    const parent = registry.passports['psp_agent_b']; // holds ['ticket.text']
+    const parent = registry.passports['psp_dedup']; // holds ['ticket.text']
 
     const sideways = delegate(
       parent,
@@ -121,7 +123,7 @@ describe('the narrowing guards', () => {
         canDelegate: false,
         maxDepth: 0,
       },
-      keys['agent-b'],
+      keys['dedup-subagent'],
       NOW,
     );
     expect(sideways.ok).toBe(false);
@@ -139,7 +141,7 @@ describe('the narrowing guards', () => {
         canDelegate: false,
         maxDepth: 0,
       },
-      keys['agent-b'],
+      keys['dedup-subagent'],
       NOW,
     );
     expect(narrower.ok).toBe(true);
@@ -147,7 +149,7 @@ describe('the narrowing guards', () => {
 
   it('refuses delegation from a Passport that cannot delegate, and enforces depth', () => {
     const { registry, keys } = buildSeed(NOW);
-    const leaf = registry.passports['psp_agent_c']; // canDelegate: false, maxDepth: 0
+    const leaf = registry.passports['psp_classifier']; // canDelegate: false, maxDepth: 0
 
     const result = delegate(
       leaf,
@@ -162,7 +164,7 @@ describe('the narrowing guards', () => {
         canDelegate: false,
         maxDepth: 0,
       },
-      keys['agent-c'],
+      keys['classifier-subagent'],
       NOW,
     );
 
@@ -174,7 +176,7 @@ describe('the narrowing guards', () => {
 
   it('only lets the agent that holds a Passport delegate from it', () => {
     const { registry, keys } = buildSeed(NOW);
-    const parent = registry.passports['psp_agent_b'];
+    const parent = registry.passports['psp_dedup'];
 
     const result = delegate(
       parent,
@@ -189,7 +191,7 @@ describe('the narrowing guards', () => {
         canDelegate: false,
         maxDepth: 0,
       },
-      keys['agent-d'], // Agent D does not hold Agent B's Passport
+      keys['summarizer-subagent'], // the summarizer subagent does not hold the dedup subagent's Passport
       NOW,
     );
 
@@ -202,17 +204,17 @@ describe('the narrowing guards', () => {
 describe('verifyChain', () => {
   it('verifies the seeded chain to the human root', () => {
     const { registry } = buildSeed(NOW);
-    const result = verifyChain(registry.passports['psp_agent_c'], registry, NOW);
+    const result = verifyChain(registry.passports['psp_classifier'], registry, NOW);
 
     expect(result.allowed).toBe(true);
-    expect(result.chain.map((p) => p.claims.subject)).toEqual(['agent-a', 'agent-b', 'agent-c']);
-    expect(result.chain[0].claims.issuer).toBe('ops-lead');
+    expect(result.chain.map((p) => p.claims.subject)).toEqual(['claude-code', 'dedup-subagent', 'classifier-subagent']);
+    expect(result.chain[0].claims.issuer).toBe('jordan-lee');
     expect(result.violations).toHaveLength(0);
   });
 
   it('catches a hand-crafted Passport that was widened after minting', () => {
     const { registry } = buildSeed(NOW);
-    const original = registry.passports['psp_agent_c'];
+    const original = registry.passports['psp_classifier'];
 
     // An agent edits its own claims to grant itself external transfer, keeping the
     // signature it was issued. Signature no longer covers these claims.
@@ -228,16 +230,16 @@ describe('verifyChain', () => {
   });
 
   it('catches a validly-signed Passport that exceeds its parent, naming the guard', () => {
-    // Agent B mints its own root-less "child" with real signing keys but broader
+    // the dedup subagent mints its own root-less "child" with real signing keys but broader
     // authority, then presents it. Verification re-derives the invariant and fails.
     const { registry, keys } = buildSeed(NOW);
-    const parent = registry.passports['psp_agent_b'];
+    const parent = registry.passports['psp_dedup'];
     const forgedClaims: PassportClaims = {
       id: 'psp_forged',
       parentId: parent.claims.id,
       rootId: parent.claims.rootId,
-      issuer: 'agent-b',
-      subject: 'agent-c',
+      issuer: 'dedup-subagent',
+      subject: 'classifier-subagent',
       task: 'laundered authority',
       actions: ['read', 'send'],
       contextScopes: ['ticket.text'],
@@ -252,7 +254,7 @@ describe('verifyChain', () => {
     // Sign it properly — the signature will be valid, the authority will not.
     const forged: Passport = {
       claims: forgedClaims,
-      signature: signPassportClaims(forgedClaims, parent.signature, keys['agent-b'].privateKeyHex),
+      signature: signPassportClaims(forgedClaims, parent.signature, keys['dedup-subagent'].privateKeyHex),
     };
 
     const withForged = putPassport(registry, forged);
@@ -266,7 +268,7 @@ describe('verifyChain', () => {
 
   it('fails a chain whose Passport has expired', () => {
     const { registry } = buildSeed(NOW);
-    const result = verifyChain(registry.passports['psp_agent_c'], registry, NOW + 7 * HOUR);
+    const result = verifyChain(registry.passports['psp_classifier'], registry, NOW + 7 * HOUR);
     expect(result.allowed).toBe(false);
     expect(result.brokenAt?.kind).toBe('expired');
   });
@@ -274,16 +276,16 @@ describe('verifyChain', () => {
   it('fails a chain that cannot be traced to a root', () => {
     const { registry } = buildSeed(NOW);
     const orphaned = { ...registry, passports: { ...registry.passports } };
-    delete orphaned.passports['psp_agent_b'];
+    delete orphaned.passports['psp_dedup'];
 
-    const result = verifyChain(registry.passports['psp_agent_c'], orphaned, NOW);
+    const result = verifyChain(registry.passports['psp_classifier'], orphaned, NOW);
     expect(result.allowed).toBe(false);
     expect(result.brokenAt?.kind).toBe('missing');
   });
 
   it('rejects a Passport signed by a key the verifier does not know', () => {
     const { registry, keys } = buildSeed(NOW);
-    const parent = registry.passports['psp_agent_b'];
+    const parent = registry.passports['psp_dedup'];
     const rogue = deterministicKeyPair('agent-rogue');
     const minted = delegate(
       parent,
@@ -298,15 +300,15 @@ describe('verifyChain', () => {
         canDelegate: false,
         maxDepth: 0,
       },
-      keys['agent-b'],
+      keys['dedup-subagent'],
       NOW,
     );
     expect(minted.ok).toBe(true);
     if (!minted.ok) return;
 
-    // Strip Agent B's key from the verifier's anchor set.
+    // Strip the dedup subagent's key from the verifier's anchor set.
     const withoutB = { ...registry, publicKeys: { ...registry.publicKeys } };
-    delete withoutB.publicKeys['agent-b'];
+    delete withoutB.publicKeys['dedup-subagent'];
     const result = verifyChain(minted.child, putPassport(withoutB, minted.child), NOW);
 
     expect(result.allowed).toBe(false);
@@ -318,31 +320,31 @@ describe('verifyChain', () => {
 describe('revocation cascades to descendants only', () => {
   it('revoking the root kills every branch', () => {
     const { registry } = buildSeed(NOW);
-    const after = revoke('psp_root_ops_lead', registry);
+    const after = revoke('psp_root_jordan_lee', registry);
 
-    for (const id of ['psp_root_ops_lead', 'psp_agent_b', 'psp_agent_c', 'psp_agent_d', 'psp_agent_e']) {
+    for (const id of ['psp_root_jordan_lee', 'psp_dedup', 'psp_classifier', 'psp_summarizer', 'psp_digest']) {
       expect(verifyChain(after.passports[id], after, NOW).allowed).toBe(false);
     }
   });
 
-  it("revoking Agent B's Passport invalidates B and C but leaves D and E working", () => {
+  it("revoking the dedup subagent's Passport invalidates B and C but leaves D and E working", () => {
     const { registry } = buildSeed(NOW);
-    const after = revoke('psp_agent_b', registry);
+    const after = revoke('psp_dedup', registry);
 
-    expect(verifyChain(after.passports['psp_agent_b'], after, NOW).allowed).toBe(false);
-    expect(verifyChain(after.passports['psp_agent_c'], after, NOW).allowed).toBe(false);
+    expect(verifyChain(after.passports['psp_dedup'], after, NOW).allowed).toBe(false);
+    expect(verifyChain(after.passports['psp_classifier'], after, NOW).allowed).toBe(false);
 
-    expect(verifyChain(after.passports['psp_agent_d'], after, NOW).allowed).toBe(true);
-    expect(verifyChain(after.passports['psp_agent_e'], after, NOW).allowed).toBe(true);
-    expect(verifyChain(after.passports['psp_root_ops_lead'], after, NOW).allowed).toBe(true);
+    expect(verifyChain(after.passports['psp_summarizer'], after, NOW).allowed).toBe(true);
+    expect(verifyChain(after.passports['psp_digest'], after, NOW).allowed).toBe(true);
+    expect(verifyChain(after.passports['psp_root_jordan_lee'], after, NOW).allowed).toBe(true);
   });
 
   it("names the revoked ancestor when a descendant is checked", () => {
     const { registry } = buildSeed(NOW);
-    const after = revoke('psp_agent_b', registry);
-    const result = verifyChain(after.passports['psp_agent_c'], after, NOW);
+    const after = revoke('psp_dedup', registry);
+    const result = verifyChain(after.passports['psp_classifier'], after, NOW);
 
-    expect(result.brokenAt?.subject).toBe('agent-b');
+    expect(result.brokenAt?.subject).toBe('dedup-subagent');
     expect(result.brokenAt?.kind).toBe('revoked');
   });
 });
@@ -351,21 +353,21 @@ describe('authorizeAction audit entries', () => {
   it('allows the internal classification and traces authority to the human', () => {
     const { registry } = buildSeed(NOW);
     const receipt = authorizeAction(
-      registry.passports['psp_agent_c'],
+      registry.passports['psp_classifier'],
       { action: 'classify', destination: 'internal-only', note: 'ticket #4471' },
       registry,
       NOW,
     );
 
     expect(receipt.kind).toBe('allow');
-    expect(receipt.chainPath).toEqual(['ops-lead', 'agent-a', 'agent-b', 'agent-c']);
-    expect(receipt.rootIssuer).toBe('ops-lead');
+    expect(receipt.chainPath).toEqual(['jordan-lee', 'claude-code', 'dedup-subagent', 'classifier-subagent']);
+    expect(receipt.rootIssuer).toBe('jordan-lee');
   });
 
   it('refuses the external send, naming the guard it failed and what it fell back to', () => {
     const { registry } = buildSeed(NOW);
     const receipt = authorizeAction(
-      registry.passports['psp_agent_c'],
+      registry.passports['psp_classifier'],
       { action: 'send', destination: 'external-webhook' },
       registry,
       NOW,
@@ -373,26 +375,26 @@ describe('authorizeAction audit entries', () => {
 
     expect(receipt.kind).toBe('refusal');
     if (receipt.kind !== 'refusal') return;
-    // Agent C legitimately holds 'send', so the DESTINATION is what stops it — the
+    // the classifier subagent legitimately holds 'send', so the DESTINATION is what stops it — the
     // human allowed sending, but never externally, and no hop could add that.
     expect(receipt.violatedField).toBe('allowedDestinations');
     expect(receipt.guard).toBe('guard:requested-destination');
     expect(receipt.blockedAtHop).toBe(3);
-    expect(receipt.blockedAtSubject).toBe('agent-c');
+    expect(receipt.blockedAtSubject).toBe('classifier-subagent');
     expect(receipt.permitted).toEqual(['internal-only']);
     expect(receipt.inheritedAuthority.allowedDestinations).toEqual(['internal-only']);
-    expect(receipt.rootIssuer).toBe('ops-lead');
+    expect(receipt.rootIssuer).toBe('jordan-lee');
     expect(receipt.detail).toContain('failed guard:requested-destination');
     expect(receipt.detail).toContain('fell back to requiring human authority');
-    expect(receipt.fallback).toBe('human authority · ops-lead must re-issue');
+    expect(receipt.fallback).toBe('human authority · jordan-lee must re-issue');
   });
 
   it('refuses an action the leaf gave up on the way down', () => {
     const { registry } = buildSeed(NOW);
-    // Agent D dropped 'classify' when it was delegated to; asking for it now fails
-    // the action check even though its parent Agent A held it.
+    // the summarizer subagent dropped 'classify' when it was delegated to; asking for it now fails
+    // the action check even though its parent Claude Code held it.
     const receipt = authorizeAction(
-      registry.passports['psp_agent_d'],
+      registry.passports['psp_summarizer'],
       { action: 'classify', destination: 'internal-only' },
       registry,
       NOW,
@@ -402,13 +404,13 @@ describe('authorizeAction audit entries', () => {
     if (receipt.kind !== 'refusal') return;
     expect(receipt.violatedField).toBe('actions');
     expect(receipt.guard).toBe('guard:requested-action');
-    expect(registry.passports['psp_root_ops_lead'].claims.actions).toContain('classify');
+    expect(registry.passports['psp_root_jordan_lee'].claims.actions).toContain('classify');
   });
 
   it('allows the same send action when it stays internal', () => {
     const { registry } = buildSeed(NOW);
     const receipt = authorizeAction(
-      registry.passports['psp_agent_c'],
+      registry.passports['psp_classifier'],
       { action: 'send', destination: 'internal-only' },
       registry,
       NOW,
@@ -420,9 +422,9 @@ describe('authorizeAction audit entries', () => {
 
   it('refuses everything on a revoked branch, naming the revocation', () => {
     const { registry } = buildSeed(NOW);
-    const after = revoke('psp_agent_b', registry);
+    const after = revoke('psp_dedup', registry);
     const receipt = authorizeAction(
-      after.passports['psp_agent_c'],
+      after.passports['psp_classifier'],
       { action: 'classify', destination: 'internal-only' },
       after,
       NOW,
@@ -438,13 +440,13 @@ describe('authorizeAction audit entries', () => {
 describe('the lifecycle loop', () => {
   it('reads draft → active → revoked off the chain, never off stored state', () => {
     const { registry } = buildSeed(NOW);
-    const live = registry.passports['psp_agent_c'];
+    const live = registry.passports['psp_classifier'];
 
     expect(lifecycleOf(live.claims, verifyChain(live, registry, NOW)).stage).toBe('active');
 
     // Withdrawn by the holder, one hop up.
-    const after = revoke('psp_agent_b', registry);
-    const c = after.passports['psp_agent_c'];
+    const after = revoke('psp_dedup', registry);
+    const c = after.passports['psp_classifier'];
     expect(lifecycleOf(c.claims, verifyChain(c, after, NOW))).toEqual({
       stage: 'revoked',
       note: 'ancestor revoked',
@@ -459,15 +461,15 @@ describe('the lifecycle loop', () => {
 
   it('leaves a Passport that fails a guard in draft — it was never in force', () => {
     const { registry, keys } = buildSeed(NOW);
-    const parent = registry.passports['psp_agent_b'];
+    const parent = registry.passports['psp_dedup'];
     const forgedClaims: PassportClaims = {
-      ...registry.passports['psp_agent_c'].claims,
+      ...registry.passports['psp_classifier'].claims,
       id: 'psp_forged',
       allowedDestinations: ['internal-only', 'external-webhook'],
     };
     const forged: Passport = {
       claims: forgedClaims,
-      signature: signPassportClaims(forgedClaims, parent.signature, keys['agent-b'].privateKeyHex),
+      signature: signPassportClaims(forgedClaims, parent.signature, keys['dedup-subagent'].privateKeyHex),
     };
     const withForged = putPassport(registry, forged);
 
@@ -483,7 +485,7 @@ describe('seed integrity', () => {
     const { registry } = buildSeed(NOW);
     expect(Object.keys(registry.passports)).toHaveLength(5);
 
-    const chain = verifyChain(registry.passports['psp_agent_c'], registry, NOW).chain;
+    const chain = verifyChain(registry.passports['psp_classifier'], registry, NOW).chain;
     const budgets = chain.map((p) => p.claims.budgetUsd);
     const expiries = chain.map((p) => p.claims.expiresAt);
     const scopeCounts = chain.map((p) => p.claims.contextScopes.length);
@@ -491,5 +493,162 @@ describe('seed integrity', () => {
     expect(budgets).toEqual([...budgets].sort((a, b) => b - a));
     expect(expiries).toEqual([...expiries].sort((a, b) => b - a));
     expect(scopeCounts[0]).toBeGreaterThan(scopeCounts[scopeCounts.length - 1]);
+  });
+});
+
+/**
+ * The dashboard's promise, checked at the SDK level: whatever a person leaves off the
+ * form cannot appear anywhere below them. Every chain here is built from a form, so
+ * these are the tests that the human layer is load-bearing rather than decorative.
+ */
+describe('launching from the team dashboard', () => {
+  const launch = (overrides: Partial<AuthorityForm>, holderId = 'priya-nair') =>
+    buildSeed(NOW, {
+      holderId,
+      templateId: 'cleanup',
+      form: { ...DEFAULT_TEMPLATE.form, ...overrides },
+    });
+
+  it('roots the chain at the person who authorized it, and signs it with their key', () => {
+    const { registry, rootId } = launch({});
+    const root = registry.passports[rootId];
+
+    expect(root.claims.issuer).toBe('priya-nair');
+    expect(verifyChain(registry.passports['psp_classifier'], registry, NOW).allowed).toBe(true);
+    // Signed by Priya's key specifically — not by whoever the demo defaults to.
+    expect(registry.publicKeys['priya-nair']).toBe(deterministicKeyPair('priya-nair').publicKeyHex);
+  });
+
+  it('withholds from every descendant what the human withheld at the root', () => {
+    const { registry } = launch({ capabilities: ['read', 'classify'] }); // no 'write'
+    for (const passport of Object.values(registry.passports)) {
+      expect(passport.claims.actions).not.toContain('write');
+    }
+  });
+
+  it('keeps customer PII out of the whole chain when the human toggles it off', () => {
+    const { registry } = launch({ dataScopes: ['ticket.text', 'ticket.metadata'] });
+    for (const passport of Object.values(registry.passports)) {
+      for (const scope of passport.claims.contextScopes) {
+        expect(scope.startsWith('ticket.customer')).toBe(false);
+      }
+    }
+  });
+
+  it('spawns nothing at all when the human refuses delegation', () => {
+    const { registry, leafId } = launch({ canDelegate: false });
+    expect(Object.keys(registry.passports)).toHaveLength(1);
+    expect(registry.passports[leafId].claims.subject).toBe('claude-code');
+  });
+
+  it('caps the chain at the hops the human allowed', () => {
+    const { registry } = launch({ maxHops: 1 });
+    // One hop of delegation: the primary agent's children, and nothing beneath them.
+    expect(registry.passports['psp_dedup']).toBeDefined();
+    expect(registry.passports['psp_classifier']).toBeUndefined();
+    expect(registry.passports['psp_digest']).toBeUndefined();
+  });
+
+  it('lets external transfer reach the leaf only because a human put it on the root', () => {
+    const withheld = launch({});
+    const granted = launch({ capabilities: [...DEFAULT_TEMPLATE.form.capabilities, 'send-external'] });
+
+    const attempt = (seed: ReturnType<typeof buildSeed>) =>
+      authorizeAction(
+        seed.registry.passports['psp_classifier'],
+        { action: 'send', destination: 'external-webhook' },
+        seed.registry,
+        NOW,
+      );
+
+    const refused = attempt(withheld);
+    expect(refused.kind).toBe('refusal');
+    expect((refused as RefusalReceipt).guard).toBe('guard:requested-destination');
+    expect((refused as RefusalReceipt).violatedField).toBe('allowedDestinations');
+    expect(refused.rootIssuer).toBe('priya-nair');
+
+    // Same chain, same guards, opposite outcome — decided three hops up by a person.
+    expect(attempt(granted).kind).toBe('allow');
+  });
+
+  it('narrows every template it offers, whichever one is launched', () => {
+    for (const template of TASK_TEMPLATES) {
+      const seed = buildSeed(NOW, {
+        holderId: 'jordan-lee',
+        templateId: template.id,
+        form: template.form,
+      });
+      const leaf = seed.registry.passports[seed.leafId];
+      const result = verifyChain(leaf, seed.registry, NOW);
+
+      expect(result.allowed).toBe(true);
+      expect(result.chain[0].claims.issuer).toBe('jordan-lee');
+      expect(leaf.claims.budgetUsd).toBeLessThan(template.form.budgetUsd);
+      // The console's failing attempt must fail on the destination, not the verb.
+      expect(leaf.claims.actions).toContain('send');
+      expect(leaf.claims.allowedDestinations).not.toContain('external-webhook');
+    }
+  });
+});
+
+/**
+ * The MRZ is presentation, but it is presentation *of* the signature — so the thing
+ * worth testing is that it stays welded to the claims it describes.
+ */
+describe('the machine-readable strip', () => {
+  it('lays out two lines of exactly 44 characters for every Passport on the chain', () => {
+    const { registry } = buildSeed(NOW);
+    for (const passport of Object.values(registry.passports)) {
+      const kind = ACTOR_BY_ID[passport.claims.subject]?.kind ?? 'subagent';
+      const mrz = buildMrz(passport.claims, passport.signature, kind);
+      expect(mrz.line1).toHaveLength(44);
+      expect(mrz.line2).toHaveLength(44);
+      expect(mrz.line1).toMatch(/^[A-Z0-9<]+$/);
+      expect(mrz.line2).toMatch(/^[A-Z0-9<]+$/);
+    }
+  });
+
+  it('encodes granted-to << issued-by, the way a passport encodes surname << given names', () => {
+    const { registry } = buildSeed(NOW);
+    const mrz = buildMrz(
+      registry.passports['psp_classifier'].claims,
+      registry.passports['psp_classifier'].signature,
+      'subagent',
+    );
+    expect(mrz.line1).toContain('CLASSIFIER<SUBAGENT<<DEDUP<SUBAGENT');
+    expect(mrz.line1.startsWith('P<SUB')).toBe(true);
+  });
+
+  it('computes ICAO check digits that actually check out', () => {
+    // Worked example from ICAO 9303 itself.
+    expect(mrzCheckDigit('D23145890734')).toBe('9');
+    expect(mrzCheckDigit('340712')).toBe('7');
+
+    const { registry } = buildSeed(NOW);
+    const p = registry.passports['psp_dedup'];
+    const line2 = buildMrz(p.claims, p.signature, 'subagent').line2;
+    // Document number occupies 1–9, its check digit sits at position 10.
+    expect(mrzCheckDigit(line2.slice(0, 9))).toBe(line2[9]);
+  });
+
+  it('changes when a claim changes, so an edited card is visibly not the signed one', () => {
+    const { registry } = buildSeed(NOW);
+    const original = registry.passports['psp_classifier'];
+    const widened = {
+      ...original.claims,
+      expiresAt: original.claims.expiresAt + 48 * HOUR,
+    };
+
+    const before = buildMrz(original.claims, original.signature, 'subagent');
+    const after = buildMrz(widened, original.signature, 'subagent');
+    expect(after.line2).not.toBe(before.line2);
+  });
+
+  it('differs per card, because each one carries its own issuer signature', () => {
+    const { registry } = buildSeed(NOW);
+    const strips = Object.values(registry.passports).map(
+      (p) => buildMrz(p.claims, p.signature, 'subagent').line2,
+    );
+    expect(new Set(strips).size).toBe(strips.length);
   });
 });

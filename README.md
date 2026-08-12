@@ -2,7 +2,7 @@
 
 **AI Passport Ideathon · Agents track**
 
-An Ops Lead authorizes one agent to clean up three years of support tickets. That agent delegates, and its delegate delegates again. This demo shows the human's permission travelling down that chain and getting **strictly narrower at every hop** — then shows what happens when the last agent tries to exceed what it inherited: the request **fails a guard** and **falls back** to requiring human authority, and the refusal is written to the append-only audit log, naming the guard and the human who set the boundary. Authority is monotonically non-increasing down the chain, enforced structurally rather than by convention: a broader Passport cannot be signed into existence, and if one were forged, the verifier re-derives the same guards and rejects it.
+Jordan Lee, Operations Lead on the Business Analytics Team, authorizes one agent to clean up three years of support tickets. That agent delegates, and its delegate delegates again. This demo shows the human's permission travelling down that chain and getting **strictly narrower at every hop** — then shows what happens when the last agent tries to exceed what it inherited: the request **fails a guard** and **falls back** to requiring human authority, and the refusal is written to the append-only audit log, naming the guard and the human who set the boundary. Authority is monotonically non-increasing down the chain, enforced structurally rather than by convention: a broader Passport cannot be signed into existence, and if one were forged, the verifier re-derives the same guards and rejects it.
 
 Every Passport carries a stage in one loop: **draft → active → revoked**. A Passport that fails a guard never leaves `draft`; one that passes every guard to a live human root is `active`; one withdrawn or lapsed is `revoked`. The stage is derived from the chain on every render, never stored.
 
@@ -11,15 +11,19 @@ npm install
 npm run dev      # http://localhost:3000
 ```
 
-The scenario is seeded on first paint, with real Ed25519 signatures. There is no database and no login — reload, or press **Reset demo**, to start over.
+The app has three tabs. **Team Dashboard** is where authority comes from: a named person on a named team fills in a plain-language form — what the agent may do, what data it may touch, what it may spend, when it expires, whether it may hand work on — and signs a root Passport. **Agent Chain** is what the agents inherited from that. **AI Passport** is the credentials themselves, one card per Passport: stamps for the permissions it holds, numbered data-page fields, an authority meter, and an ICAO-style machine-readable strip generated from the real Ed25519 signature. Tap a card to turn it over for the per-hop guards and its chain of custody. The dashboard leads because there is no other door into the system: agents can never create authority, only inherit a narrower slice of a person's.
 
-## Demo script — four clicks, under a minute
+The scenario is seeded on first paint, with real Ed25519 signatures, so opening **Agent Chain** directly shows a populated chain already attributed to Jordan Lee · Business Analytics Team. There is no database and no login — reload, or press **Reset demo**, to start over.
 
-1. **Read the chain.** Ops Lead → Agent A → Agent B → Agent C, with a second branch A → D → E. Every card carries a stage pill (`active`) and shows the authority its Passport holds *against what the human granted*: chips the agent gave up stay in place, dimmed and struck through, and the authority bar shortens each hop (100% → 55% → 37%). `external-webhook` is struck through on every card, including the root — the human never granted it, so no descendant could acquire it.
-2. **Click "Classify ticket internally."** Allowed. The audit entry traces the authority through 3 Passports back to the Ops Lead, every guard passing.
-3. **Click "Send data to external service."** Fails `guard:requested-destination` at hop 3 and falls back to requiring human authority. The refusal entry names the guard, what was requested (`external-webhook`), what the inherited authority permits (`internal-only`), what it fell back to, and who set the boundary (the Ops Lead, in the root Passport).
-4. **In the delegation sandbox, click "Ask for external transfer," then "Mint child Passport."** The draft stays a draft — no Passport is created, because it fails `guard:destinations`. Agent B cannot grant what it does not hold. Turn the toggle back off and mint again to watch a genuinely narrower child pass every guard, go `active`, and join the graph.
-5. **Click "Revoke Agent B's branch."** B and C move to `revoked` immediately; D and E stay `active`. Then try the allowed action again — it now fails `guard:revocation`, citing the revoked ancestor.
+## Demo script — five clicks, under a minute
+
+1. **On the Team Dashboard, pick who's authorizing and press "Issue Passport & launch chain."** A named person signs the root Passport, the app switches to **Agent Chain**, and the whole chain below is derived from exactly what was ticked. Change something first — untick *Write*, or switch delegation off — and watch it disappear from every agent below, because there was nothing there to inherit.
+2. **Read the chain.** Business Analytics Team · Jordan Lee → Agent A → Agent B → Agent C, with a second branch A → D → E. Every card carries a stage pill (`active`) and shows the authority its Passport holds *against what the human granted*: chips the agent gave up stay in place, dimmed and struck through, and the authority bar shortens each hop (100% → 55% → 37%). `external-webhook` is struck through on every card, including the root — the human never granted it, so no descendant could acquire it.
+3. **Click "Classify ticket internally."** Allowed. The audit entry traces the authority through 3 Passports back to Jordan Lee, every guard passing.
+4. **Click "Send data to external service."** Fails `guard:requested-destination` at hop 3 and falls back to requiring human authority. The refusal entry names the guard, what was requested (`external-webhook`), what the inherited authority permits (`internal-only`), what it fell back to, and who set the boundary (`Jordan Lee · Business Analytics Team`, in the root Passport).
+5. **In the delegation sandbox, click "Ask for external transfer," then "Mint child Passport."** The draft stays a draft — no Passport is created, because it fails `guard:destinations`. Agent B cannot grant what it does not hold. Turn the toggle back off and mint again to watch a genuinely narrower child pass every guard, go `active`, and join the graph.
+6. **Click "Revoke Agent B's branch."** B and C move to `revoked` immediately; D and E stay `active`. Then try the allowed action again — it now fails `guard:revocation`, citing the revoked ancestor.
+7. **Open the AI Passport tab.** The same chain as five credential cards, left to right. The stamps thin out (9 → 6 → 5 → 4), the authority meter drops (100% → 55% → 37%), and the machine-readable strip differs on every card because each was signed by a different holder over narrower claims. Turn a revoked or refused card over to find `REVOKED` or `DENIED` struck across it.
 
 Every decision, allow and refusal alike, lands in the append-only audit log of actions, accesses, and refusals.
 
@@ -82,6 +86,6 @@ No environment variables, no database, no external services. Pushing the repo to
 
 ## Judging alignment
 
-The **How it works** panel at the bottom of the page names each item the Agents track asks for: the holder (Ops Lead, human), the agents (A–E), the verifier (`/api/verify`), the guards, the lifecycle (draft → active → revoked), the permission scope (chips on every node), expiry (a live countdown on every Passport) and revocation rules, the audit log, and what happens outside scope (the blocked external send).
+The **How it works** panel at the bottom of the page names each item the Agents track asks for: the holder (Jordan Lee, a named person on a named team), the agents (A–E), the verifier (`/api/verify`), the guards, the lifecycle (draft → active → revoked), the permission scope (chips on every node), expiry (a live countdown on every Passport) and revocation rules, the audit log, and what happens outside scope (the blocked external send).
 
 > This is for an operations lead, who needs to prove to every downstream service that an agent's authority came from them and never grew — so work gets delegated safely without giving away more context than necessary.

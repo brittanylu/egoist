@@ -8,9 +8,10 @@
 import { truncateHex } from '@/lib/crypto';
 import { formatCountdown, formatUsd, formatWindow, lifecycleOf } from '@/lib/authority';
 import { verifyChain } from '@/lib/passport';
-import { ACTOR_BY_ID } from '@/lib/seed';
+import { ACTOR_BY_ID, TIER_LABEL, shortActorId } from '@/lib/seed';
+import { isTeamMember, teamLine } from '@/lib/team';
 import { useDemo } from '@/lib/store';
-import { Chip, KeyValue, SectionHeading, StatusPill, StatusTrack, cx, useNow } from './ui';
+import { Chip, KeyValue, SectionHeading, StatusPill, StatusTrack, TierBadge, cx, useNow } from './ui';
 import { useChainStatuses } from './useChainStatus';
 
 export function PassportDrawer() {
@@ -32,6 +33,8 @@ export function PassportDrawer() {
   const lifecycle = lifecycleOf(claims, verification);
   const actor = ACTOR_BY_ID[claims.subject];
   const parent = claims.parentId ? registry.passports[claims.parentId] : undefined;
+  // Who handed this over: the agent above it, or — at the root — the person who signed it.
+  const spawner = ACTOR_BY_ID[parent ? parent.claims.subject : claims.issuer];
   const path = [verification.chain[0]?.claims.issuer, ...verification.chain.map((p) => p.claims.subject)].filter(
     Boolean,
   ) as string[];
@@ -42,6 +45,22 @@ export function PassportDrawer() {
       <SectionHeading
         eyebrow="Passport"
         title={actor?.label ?? claims.subject}
+        hint={
+          actor && (
+            <span className="flex flex-wrap items-center gap-2">
+              <TierBadge kind={actor.kind} />
+              <span>
+                {actor.role}
+                {spawner && (
+                  <>
+                    {' · '}
+                    {spawner.kind === 'human' ? 'authorized by' : 'spawned by'} {spawner.label}
+                  </>
+                )}
+              </span>
+            </span>
+          )
+        }
         action={<StatusPill stage={lifecycle.stage} note={lifecycle.note} />}
       />
 
@@ -64,7 +83,7 @@ export function PassportDrawer() {
         <KeyValue label="Issued by" mono>
           {claims.issuer}
           <span className="ml-1.5 text-muted">
-            {ACTOR_BY_ID[claims.issuer]?.kind === 'human' ? '(human holder)' : '(agent)'}
+            ({TIER_LABEL[ACTOR_BY_ID[claims.issuer]?.kind ?? 'agent']})
           </span>
         </KeyValue>
         <KeyValue label="Granted to" mono>
@@ -151,13 +170,15 @@ export function PassportDrawer() {
           <div className="mt-1.5 font-mono text-[12px] leading-relaxed text-ink">
             {path.map((id, i) => (
               <span key={`${id}-${i}`}>
-                {ACTOR_BY_ID[id]?.label ?? id}
+                {/* The trace starts at a person on a named team, not at an abstract
+                    root — that is the whole claim this breadcrumb is making. */}
+                {isTeamMember(id) ? teamLine(id) : (ACTOR_BY_ID[id]?.label ?? id)}
                 {i < path.length - 1 && <span className="mx-1.5 text-muted">→</span>}
               </span>
             ))}
           </div>
           <p className="mt-2 text-[11.5px] leading-relaxed text-muted">
-            Every guard passed at every hop. Authority never widened along this path.
+            Every guard passed at every hop. Authority never widened along this path, and it began with a person.
           </p>
         </div>
       )}
@@ -174,7 +195,12 @@ export function PassportDrawer() {
                 className="flex items-center gap-2 font-mono text-[11px] text-muted"
               >
                 <span className="w-4 text-right text-ink">{check.hop}</span>
-                <span className={cx('w-16 truncate', hopOk ? 'text-ink' : 'text-deny')}>{check.subject}</span>
+                <span
+                  className={cx('w-[76px] truncate', hopOk ? 'text-ink' : 'text-deny')}
+                  title={check.subject}
+                >
+                  {shortActorId(check.subject)}
+                </span>
                 <span className={check.signatureValid ? 'text-allow' : 'text-deny'}>sig</span>
                 <span className={check.guardsOk ? 'text-allow' : 'text-deny'}>narrow</span>
                 <span className={!check.expired ? 'text-allow' : 'text-deny'}>expiry</span>

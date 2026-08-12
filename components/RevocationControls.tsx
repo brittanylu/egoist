@@ -8,21 +8,24 @@
  * Passport moves everything beneath it to `revoked` the instant the flag is set, and
  * touches no sibling branch.
  */
-import { descendantsOf } from '@/lib/passport';
+import { childrenOf, descendantsOf } from '@/lib/passport';
 import { ACTOR_BY_ID } from '@/lib/seed';
+import { holderLine, isTeamMember } from '@/lib/team';
 import { useDemo } from '@/lib/store';
 import { Chip, Em, SectionHeading, cx } from './ui';
 import { useChainStatuses } from './useChainStatus';
 
 export function RevocationControls() {
   const statuses = useChainStatuses();
-  const { registry, rootId, passportBySubject, revokePassport, reset } = useDemo();
+  const { registry, rootId, revokePassport, reset } = useDemo();
 
   const root = registry.passports[rootId];
-  const branchId = passportBySubject['agent-b'];
-  const branch = branchId ? registry.passports[branchId] : undefined;
-
   if (!root) return null;
+
+  // Whichever branch the primary agent spawned first — the chain's shape depends on
+  // what the human launched, so this cannot be pinned to one named subagent.
+  const branch = childrenOf(registry, rootId)[0];
+  const issuer = root.claims.issuer;
 
   const label = (id: string) => ACTOR_BY_ID[id]?.label ?? id;
   const statusOf = (id: string) => statuses[id]?.allowed ?? false;
@@ -41,7 +44,13 @@ export function RevocationControls() {
             Withdraw <Em>authority</Em>.
           </>
         }
-        hint="Revoking moves a Passport from active to revoked, and takes its whole subtree with it. Nothing else moves."
+        hint={
+          <>
+            Only {isTeamMember(issuer) ? holderLine(issuer) : label(issuer)} can do this — no agent on the chain can
+            withdraw anything, including its own. Revoking moves a Passport from active to revoked, and takes its whole
+            subtree with it. Nothing else moves.
+          </>
+        }
       />
 
       <div className="mt-4 space-y-2.5">
