@@ -6,7 +6,7 @@
   --bg: #ffffff;
   --bg-soft: #fafaf8;
   --text: #0a0a0a;
-  --muted: #4b5563;
+  --muted: #6b7280;
   --border: #d6d6d6;
   --allow: #15803d;
   --deny: #b91c1c;
@@ -22,20 +22,63 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* ── Voice ────────────────────────────────────────────────────────────────────
+   Everything is set lowercase — headlines, labels, buttons, prose. Doing it here
+   rather than in the strings keeps the copy readable in source and, more to the
+   point, leaves the data alone: this changes how a Passport is displayed, never
+   what it says.
+
+   Kept in @layer base so anything with an opinion outranks it: the .label eyebrow
+   and the .stamp stay uppercase from the components layer, and a `lowercase` or
+   `uppercase` utility still wins outright. */
+@layer base {
+  body {
+    text-transform: lowercase;
+  }
+  /* Preflight resets text-transform on form controls to undo an Edge/Firefox
+     quirk, so buttons and selects sit out the page voice unless told otherwise.
+     Same specificity, declared later, so this is the one that lands. */
+  button,
+  select {
+    text-transform: inherit;
+  }
+  /* Never touch what someone typed. */
+  input,
+  textarea {
+    text-transform: none;
+  }
+}
+
 @layer components {
   /* ── Type ────────────────────────────────────────────────────────────────
-     Oversized, tight, confident. Emphasis words are set in a real italic. */
+     One face, set as heavy as it goes, packed until the letters nearly touch and
+     the lines sit closer than the cap height. The weight and the negative
+     tracking are what carry the voice — there is no second family. */
   .display {
-    @apply font-semibold tracking-tightest;
-    line-height: 1.05;
+    @apply font-black tracking-display leading-display;
   }
+  /* The same idea stepped down for section headings: at 21px, 900 weight at
+     -0.045em closes the counters up and the word stops being readable. */
+  .display-sm {
+    @apply font-extrabold tracking-[-0.035em];
+    line-height: 1.1;
+  }
+  /* An emphasised word gets the one mark the site uses anywhere — a thick rule
+     ridden close under the baseline, cutting straight through the descenders. */
   .em {
-    font-family: var(--font-instrument-serif), Georgia, serif;
-    font-style: italic;
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    /* A serif italic reads optically smaller beside a grotesk; nudge it back. */
-    font-size: 1.04em;
+    text-decoration: underline;
+    text-decoration-thickness: 0.055em;
+    text-underline-offset: 0.14em;
+    text-decoration-skip-ink: none;
+  }
+
+  /* Machine text, printed exactly as issued: MRZ lines, signatures, key material.
+     Case is part of the value there, so the page voice has to keep its hands off —
+     a lowercased signature would misreport what was signed. Opt-in rather than
+     exempting monospace wholesale, since most of the mono on this page is prose
+     about the data rather than the data itself. */
+  .verbatim {
+    text-transform: none;
   }
 
   /* ── Chips ───────────────────────────────────────────────────────────── */
@@ -83,8 +126,10 @@ body {
     @apply btn border border-hairline bg-canvas text-deny hover:border-deny/40;
   }
 
+  /* The eyebrow is the one thing set against the grain: uppercase, heavy, and
+     tracked open, so it reads as a tag rather than as the start of a sentence. */
   .label {
-    @apply text-2xs font-medium uppercase tracking-[0.14em] text-muted;
+    @apply text-[13px] font-bold uppercase leading-none tracking-[0.12em] text-muted;
   }
 
   /* ── Credential cards ────────────────────────────────────────────────────

@@ -114,7 +114,7 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
             {i < receipt.chainPath.length - 1 && <span className="text-muted/75">→</span>}
           </span>
         ))}
-        <span className="ml-auto">{receipt.id.slice(0, 14)}</span>
+        <span className="verbatim ml-auto">{receipt.id.slice(0, 14)}</span>
       </div>
     </div>
   );

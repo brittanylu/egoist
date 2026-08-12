@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Brand } from '@/components/Brand';
+import { Brand, EgoistMark } from '@/components/Brand';
 import { ActionConsole } from '@/components/ActionConsole';
 import { AuditLog } from '@/components/AuditLog';
 import { ChainGraph } from '@/components/ChainGraph';
@@ -36,7 +36,19 @@ export default function Page() {
       <div className="mx-auto w-full max-w-[1200px] px-5 pb-24 pt-8 sm:px-8">
         {/* Header */}
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <Brand />
+          {/* Product wordmark, hairline, host mark. The divider is what keeps the two
+              from reading as one lockup.
+
+              items-baseline, not items-center: the two marks are set at different
+              sizes, and centring their line boxes leaves their baselines a pixel
+              apart. Type in a lockup aligns on the baseline. The rule is sized to the
+              wordmark's ascender and sits on that same baseline, so it spans the
+              letters rather than overshooting them. */}
+          <div className="flex items-baseline gap-3">
+            <Brand />
+            <span aria-hidden className="h-[11px] w-px shrink-0 bg-hairline" />
+            <EgoistMark />
+          </div>
           <div className="flex items-center gap-3">
             <Pill>Agents track</Pill>
             <button type="button" className="btn-secondary" onClick={reset}>
@@ -47,10 +59,10 @@ export default function Page() {
 
         {/* Hero */}
         <section className="mt-20 max-w-[62ch] sm:mt-28">
-          <h1 className="display text-[46px] sm:text-[68px]">
+          <h1 className="display text-[52px] sm:text-[80px]">
             Stop permission <Em>laundering</Em>.
           </h1>
-          <p className="mt-7 max-w-[58ch] text-[16px] leading-relaxed text-muted">
+          <p className="mt-8 max-w-[54ch] text-[17px] leading-[1.45] text-muted sm:text-[19px]">
             {holderName}
             {holder && isTeamMember(issuer) ? `, ${holder.role} on the ${TEAM_NAME},` : ''} authorizes Claude Code to
             clean up three years of support tickets. Claude Code spawns subagents, and those spawn subagents of their
@@ -117,11 +129,25 @@ export default function Page() {
           </>
         )}
 
-        <footer className="mt-20 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-5 text-[12px] text-muted">
-          <span>AI Passport Ideathon · Agents track</span>
-          <span className="font-mono">
-            Ed25519 signatures · guards enforced in lib/passport.ts · verified at /api/verify
-          </span>
+        <footer className="mt-20 border-t border-hairline pt-5 text-[12px] text-muted">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Same lockup rule as the header: baseline-aligned, rule sized to the ascender. */}
+            <span className="flex items-baseline gap-2.5">
+              <EgoistMark size="footer" />
+              <span aria-hidden className="h-[9px] w-px shrink-0 bg-hairline" />
+              AI Passport Ideathon · Agents track
+            </span>
+            <span className="font-mono">
+              Ed25519 signatures · guards enforced in lib/passport.ts · verified at /api/verify
+            </span>
+          </div>
+
+          {/* The four people who built it. Set in the page voice like every other
+              name here, including the ones on the chain. */}
+          <div className="mt-3.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-t border-hairline pt-3.5 text-[11.5px]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted/70">Built by</span>
+            <span className="text-muted">Brittany Lu · Sriya Vintha · Phillip Zeng · Michael Liu</span>
+          </div>
         </footer>
       </div>
 

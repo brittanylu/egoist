@@ -8,7 +8,7 @@ const config: Config = {
         canvas: '#FFFFFF', // --bg
         surface: '#FAFAF8', // --bg-soft
         ink: '#0A0A0A', // --text
-        muted: '#4B5563', // --muted
+        muted: '#6B7280', // --muted
         hairline: '#D6D6D6', // --border
         allow: '#15803D',
         deny: '#B91C1C',
@@ -23,9 +23,6 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-geist-sans)', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'ui-monospace', 'SFMono-Regular', 'monospace'],
-        // A true italic, for emphasis words inside headings. Geist ships no italic,
-        // so a synthetic slant is avoided in favour of a real one.
-        italic: ['var(--font-instrument-serif)', 'Georgia', 'serif'],
       },
       borderRadius: {
         card: '10px',
@@ -35,9 +32,13 @@ const config: Config = {
       },
       letterSpacing: {
         tightest: '-0.03em',
+        // Headline tracking. Only survivable because the face is set at 900 — at
+        // lighter weights the words start to fuse.
+        display: '-0.045em',
       },
       lineHeight: {
-        display: '1.05',
+        // Under 1: at this weight the lines want to stack as a block, not a list.
+        display: '0.9',
       },
       keyframes: {
         // Quiet fades only: no travel, no bounce.

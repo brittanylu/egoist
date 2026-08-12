@@ -146,7 +146,9 @@ export function PassportDrawer() {
           {lifecycle.note && <span className="ml-1.5 text-muted">· {lifecycle.note}</span>}
         </KeyValue>
         <KeyValue label="Signature" mono>
-          <span title={passport.signature}>{truncateHex(passport.signature, 16, 10)}</span>
+          <span className="verbatim" title={passport.signature}>
+            {truncateHex(passport.signature, 16, 10)}
+          </span>
           <div className="mt-1 text-[11px] text-muted">
             Ed25519 over canonical claims + parent signature
           </div>

@@ -99,7 +99,7 @@ function Field({
 }) {
   return (
     <div className="border-t border-hairline pt-4">
-      <div className="text-[13.5px] font-medium text-ink">{label}</div>
+      <div className="text-[14.5px] font-medium text-ink">{label}</div>
       {hint && <p className="mt-1 text-[12px] leading-relaxed text-muted">{hint}</p>}
       <div className="mt-2.5">{children}</div>
     </div>
@@ -208,7 +208,7 @@ export function TeamDashboard() {
 
         {/* Who is authorizing */}
         <div className="mt-6">
-          <div className="text-[13.5px] font-medium text-ink">Who&rsquo;s authorizing this?</div>
+          <div className="text-[14.5px] font-medium text-ink">Who&rsquo;s authorizing this?</div>
           <p className="mt-1 text-[12px] leading-relaxed text-muted">
             Their name goes on the chain. Every agent below inherits from them, and only they can widen it later.
           </p>
@@ -239,7 +239,7 @@ export function TeamDashboard() {
 
         {/* Task templates */}
         <div className="mt-7">
-          <div className="text-[13.5px] font-medium text-ink">What should it work on?</div>
+          <div className="text-[14.5px] font-medium text-ink">What should it work on?</div>
           <p className="mt-1 text-[12px] leading-relaxed text-muted">
             Each job comes with a starting set of permissions. Change anything you like before you sign.
           </p>

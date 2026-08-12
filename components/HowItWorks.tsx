@@ -80,11 +80,11 @@ export function HowItWorks() {
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <div className="label">How it works</div>
-          <h2 className="display mt-3 max-w-[20ch] text-[30px] sm:text-[38px]">
+          <h2 className="display mt-4 max-w-[20ch] text-[34px] sm:text-[44px]">
             Authority should <Em>shrink</Em> as it travels.
           </h2>
         </div>
-        <p className="max-w-[46ch] text-[14px] leading-relaxed text-muted">
+        <p className="max-w-[46ch] text-[15px] leading-[1.45] text-muted">
           Four things hold this together: signatures that link each Passport to its parent, a guard on every field, an
           expiry on every hop, and an audit entry for every decision.
         </p>
@@ -93,8 +93,8 @@ export function HowItWorks() {
       <dl className="mt-9 grid gap-x-12 gap-y-6 sm:grid-cols-2">
         {items.map((item) => (
           <div key={item.term} className="border-t border-hairline pt-4">
-            <dt className="text-[13.5px] font-medium text-ink">{item.term}</dt>
-            <dd className="mt-2 text-[13px] leading-relaxed text-muted">{item.detail}</dd>
+            <dt className="text-[14.5px] font-bold tracking-tight text-ink">{item.term}</dt>
+            <dd className="mt-2 text-[13px] leading-[1.5] text-muted">{item.detail}</dd>
           </div>
         ))}
       </dl>

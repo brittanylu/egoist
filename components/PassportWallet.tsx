@@ -151,7 +151,7 @@ function Stamp({
 function DataField({ label, children, wide }: { label: string; children: React.ReactNode; wide?: boolean }) {
   return (
     <div className={cx('min-w-0', wide && 'col-span-2')}>
-      <div className="text-[8.5px] font-medium uppercase tracking-[0.12em] text-muted">{label}</div>
+      <div className="text-[9.5px] font-medium uppercase tracking-[0.12em] text-muted">{label}</div>
       <div className="mt-[3px] truncate font-mono text-[11px] leading-tight text-ink">{children}</div>
     </div>
   );
@@ -271,7 +271,7 @@ function PassportCard({ passport, parent, root, index, statuses }: CardProps) {
 
           <div className="flex min-h-0 flex-1 flex-col px-3.5 pb-2.5 pt-3">
             {/* Holder */}
-            <div className="text-[8.5px] font-medium uppercase tracking-[0.12em] text-muted">Granted to</div>
+            <div className="text-[9.5px] font-medium uppercase tracking-[0.12em] text-muted">Granted to</div>
             <div
               className={cx(
                 'mt-[3px] text-[15px] font-medium leading-tight tracking-tightest',
@@ -280,7 +280,7 @@ function PassportCard({ passport, parent, root, index, statuses }: CardProps) {
             >
               Agent {agentLetter(index)} — {shortLabel(claims.subject)}
             </div>
-            <div className="mt-1.5 text-[8.5px] font-medium uppercase tracking-[0.12em] text-muted">Issued by</div>
+            <div className="mt-1.5 text-[9.5px] font-medium uppercase tracking-[0.12em] text-muted">Issued by</div>
             <div className="mt-[2px] font-mono text-[11px] leading-tight">
               {issuerIsHuman ? (
                 <>
@@ -294,7 +294,7 @@ function PassportCard({ passport, parent, root, index, statuses }: CardProps) {
 
             {/* Stamps */}
             <div className="mt-3 border-t border-hairline pt-2.5">
-              <div className="text-[8.5px] font-medium uppercase tracking-[0.12em] text-muted">
+              <div className="text-[9.5px] font-medium uppercase tracking-[0.12em] text-muted">
                 Stamps · {claims.actions.length + claims.contextScopes.length + claims.allowedDestinations.length}
               </div>
               <div className="mt-1.5 flex flex-wrap gap-1">
@@ -345,7 +345,7 @@ function PassportCard({ passport, parent, root, index, statuses }: CardProps) {
             {/* Authority meter */}
             <div className="mt-auto pt-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-[8.5px] font-medium uppercase tracking-[0.12em] text-muted">
+                <span className="text-[9.5px] font-medium uppercase tracking-[0.12em] text-muted">
                   Authority held of root
                 </span>
                 <span className="text-[9.5px] text-muted">tap to flip</span>
@@ -358,7 +358,7 @@ function PassportCard({ passport, parent, root, index, statuses }: CardProps) {
 
           {/* MRZ: the signature, made readable */}
           <div className="border-t border-hairline bg-surface px-3 py-1.5">
-            <div className="overflow-hidden font-mono text-[8.5px] leading-[1.5] tracking-[0.06em] text-ink/85">
+            <div className="verbatim overflow-hidden font-mono text-[8.5px] leading-[1.5] tracking-[0.06em] text-ink/85">
               <div className="truncate">{mrz.line1}</div>
               <div className="truncate">{mrz.line2}</div>
             </div>
@@ -385,7 +385,7 @@ function PassportCard({ passport, parent, root, index, statuses }: CardProps) {
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col px-3.5 pb-3 pt-3">
-            <div className="text-[8.5px] font-medium uppercase tracking-[0.12em] text-muted">Guards, this hop</div>
+            <div className="text-[9.5px] font-medium uppercase tracking-[0.12em] text-muted">Guards, this hop</div>
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               {guards.map((guard) => (
                 <span
@@ -402,7 +402,7 @@ function PassportCard({ passport, parent, root, index, statuses }: CardProps) {
             </div>
 
             <div className="mt-3.5 border-t border-hairline pt-2.5">
-              <div className="text-[8.5px] font-medium uppercase tracking-[0.12em] text-muted">Chain of custody</div>
+              <div className="text-[9.5px] font-medium uppercase tracking-[0.12em] text-muted">Chain of custody</div>
               <div className="mt-1.5 font-mono text-[10.5px] leading-relaxed">
                 {trace.map((id, i) => (
                   <span key={`${id}-${i}`}>
@@ -421,8 +421,8 @@ function PassportCard({ passport, parent, root, index, statuses }: CardProps) {
             </div>
 
             <div className="mt-3.5 border-t border-hairline pt-2.5">
-              <div className="text-[8.5px] font-medium uppercase tracking-[0.12em] text-muted">Signature</div>
-              <div className="mt-1 break-all font-mono text-[9.5px] leading-[1.55] text-muted">
+              <div className="text-[9.5px] font-medium uppercase tracking-[0.12em] text-muted">Signature</div>
+              <div className="verbatim mt-1 break-all font-mono text-[9.5px] leading-[1.55] text-muted">
                 {passport.signature.slice(0, 64)}…
               </div>
               <p className="mt-2 text-[10.5px] leading-relaxed text-muted">

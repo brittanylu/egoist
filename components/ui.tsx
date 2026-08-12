@@ -26,7 +26,7 @@ export function useNow(): number {
   return useContext(ClockContext) || Date.now();
 }
 
-/** An emphasis word inside a heading, set in a real italic. */
+/** An emphasis word inside a heading, marked by a thick rule under it. */
 export function Em({ children }: { children: ReactNode }) {
   return <span className="em">{children}</span>;
 }
@@ -203,8 +203,8 @@ export function SectionHeading({
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
         <div className="label">{eyebrow}</div>
-        <h2 className="display mt-2 text-[21px]">{title}</h2>
-        {hint && <p className="mt-2 max-w-prose text-[13.5px] leading-relaxed text-muted">{hint}</p>}
+        <h2 className="display-sm mt-2.5 text-[23px]">{title}</h2>
+        {hint && <p className="mt-2.5 max-w-prose text-[13.5px] leading-[1.5] text-muted">{hint}</p>}
       </div>
       {/* shrink-0: the action is a pill or chip, and squeezing it wraps its text. */}
       {action && <div className="shrink-0">{action}</div>}
@@ -215,7 +215,7 @@ export function SectionHeading({
 export function KeyValue({ label, children, mono }: { label: string; children: ReactNode; mono?: boolean }) {
   return (
     <div className="grid grid-cols-[104px_1fr] items-baseline gap-3 py-1.5">
-      <div className="text-2xs uppercase tracking-[0.1em] text-muted">{label}</div>
+      <div className="text-[12px] uppercase tracking-[0.1em] text-muted">{label}</div>
       <div className={cx('text-[13px] leading-snug', mono && 'font-mono text-[12px]')}>{children}</div>
     </div>
   );

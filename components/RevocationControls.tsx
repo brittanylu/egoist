@@ -87,7 +87,7 @@ export function RevocationControls() {
           <div className="label">Effect on the tree</div>
           <div className="mt-2 grid gap-3 sm:grid-cols-2">
             <div>
-              <div className="text-2xs uppercase tracking-[0.1em] text-muted">
+              <div className="text-[12px] uppercase tracking-[0.1em] text-muted">
                 {label(branch.claims.subject)} subtree
               </div>
               <div className="mt-1.5 flex flex-wrap gap-1">
@@ -99,7 +99,7 @@ export function RevocationControls() {
               </div>
             </div>
             <div>
-              <div className="text-2xs uppercase tracking-[0.1em] text-muted">Unrelated branches</div>
+              <div className="text-[12px] uppercase tracking-[0.1em] text-muted">Unrelated branches</div>
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {others.map((p) => (
                   <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'} className="chip-mono">
