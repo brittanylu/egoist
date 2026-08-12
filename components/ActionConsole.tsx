@@ -148,7 +148,7 @@ export function ActionConsole() {
           </div>
         ) : (
           <div className="rounded-card border border-dashed border-hairline p-5 text-center text-[12.5px] text-muted">
-            The audit log is empty. Try the action that passes, then the one that fails a guard.
+            The audit log is empty. Try the action this agent&rsquo;s AI Passport permits, then the one it does not.
           </div>
         )}
       </div>

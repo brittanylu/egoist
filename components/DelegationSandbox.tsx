@@ -141,7 +141,7 @@ export function DelegationSandbox() {
       {/* Who is delegating */}
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1.5">
-          <span className="label">Delegating agent</span>
+          <span className="label">Issuing agent&rsquo;s AI Passport</span>
           <select
             value={activeParentId}
             onChange={(event) => setParentId(event.target.value)}

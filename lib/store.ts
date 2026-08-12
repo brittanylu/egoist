@@ -304,7 +304,7 @@ export const useDemo = create<DemoState>((set, get) => ({
       ...liveFrom(launch.snapshot),
       // The chain is the payoff — go straight to it.
       tab: 'chain' as Tab,
-      toast: `Root Passport issued by ${holderLine(config.holderId)}.`,
+      toast: `Root AI Passport issued by ${holderLine(config.holderId)}.`,
     }));
   },
 

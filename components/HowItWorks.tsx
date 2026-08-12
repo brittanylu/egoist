@@ -25,53 +25,53 @@ export function HowItWorks() {
   const items: Array<{ term: string; detail: string }> = [
     {
       term: 'Holder',
-      detail: `${holderPhrase} — a person, not a role account. They hold the signing key, issue the root Passport from the team dashboard, and are the only party who can widen anything. No agent can create authority; it can only inherit a narrower slice of someone else's.`,
+      detail: `${holderPhrase} — a person, not a role account. They hold the signing key, issue the root AI Passport from the team dashboard, and are the only party who can widen anything. No agent can create authority; it can only inherit a narrower Passport from someone else's.`,
     },
     {
       term: 'Agents and subagents',
       detail:
-        'Claude Code is the primary agent — the one the human handed the task to. It spawns a dedup subagent and a summarizer subagent; those spawn a classifier and a digest subagent in turn. Every node is badged with its tier and railed in that tier’s colour, so a subagent is never mistaken for the agent that spawned it. Each holds its own Passport and its own signing key.',
+        'Claude Code is the primary agent — the one the human handed the AI Passport to. It spawns a dedup subagent and a summarizer subagent; those spawn a classifier and a digest subagent in turn. Every node is badged with its tier and railed in that tier’s colour, so a subagent is never mistaken for the agent that spawned it. Each holds its own Passport and its own signing key.',
     },
     {
       term: 'Verifier',
       detail:
-        'The internal ticket service, running at /api/verify. It holds no secrets, trusts no agent’s account of its own permissions, and re-derives every guard from the chain.',
+        'The internal ticket service, running at /api/verify. It holds no secrets, trusts no agent’s account of its own AI Passport, and re-derives every guard from the chain itself.',
     },
     {
       term: 'Guards',
       detail:
-        'The narrowing rules, one per field: guard:actions, guard:context, guard:destinations, guard:budget, guard:expiry, guard:depth. Each runs at mint time and again at verify time. A request that fails a guard falls back to requiring human authority.',
+        'The narrowing rules, one per field: guard:actions, guard:context, guard:destinations, guard:budget, guard:expiry, guard:depth. Each runs when a child AI Passport is issued, and again every time one is verified. A request that fails a guard falls back to requiring human authority.',
     },
     {
       term: 'Lifecycle',
       detail:
-        'draft → active → revoked. A Passport that fails a guard never leaves draft; one that passes is active; one withdrawn or lapsed is revoked. The stage is derived from the chain, never stored.',
+        'draft → active → revoked. An AI Passport that fails a guard never leaves draft; one that passes is active; one withdrawn or lapsed is revoked. The stage is derived from the chain, never stored.',
     },
     {
       term: 'Permission scope',
       detail:
-        'Actions, context scopes, and destinations, shown as chips on every node. Chips a node gave up stay visible, struck through.',
+        'Actions, context scopes, and destinations — what an AI Passport is scoped to, shown as chips on every node. Chips a node gave up stay visible, struck through.',
     },
     {
       term: 'Expiry',
       detail: root
-        ? `Every Passport carries its own countdown; the root expires in ${formatCountdown(root.claims.expiresAt, now)} and no descendant may outlive it.`
-        : 'Every Passport carries its own countdown, and no descendant may outlive its parent.',
+        ? `Every AI Passport carries its own countdown; the root expires in ${formatCountdown(root.claims.expiresAt, now)} and no child may outlive it.`
+        : 'Every AI Passport carries its own countdown, and no child may outlive its parent.',
     },
     {
       term: 'Revocation',
       detail:
-        'The holder can retire the root or any single Passport. Everything beneath a revoked Passport stops verifying immediately; sibling branches are untouched.',
+        'The holder can retire the root or any single AI Passport. Every Passport beneath a revoked one stops verifying immediately; sibling branches are untouched.',
     },
     {
       term: 'Audit log',
       detail:
-        'Append-only audit log of actions, accesses, and refusals. Every entry names the agent, the request, the chain it came through, the guard that decided it, and what it fell back to.',
+        'Every AI Passport check — allow, access, or refusal — written append-only. Each entry names the agent, the request, the chain it came through, the guard that decided it, and what it fell back to.',
     },
     {
       term: 'Outside scope',
       detail:
-        'The classifier subagent’s attempt to send data to an external webhook fails guard:requested-destination and falls back to requiring human authority. The action does not happen; the refusal is written to the audit log.',
+        'The classifier subagent’s attempt to send data to an external webhook fails guard:requested-destination: no ancestor AI Passport ever allowed external transfer, so no child could inherit it. The action does not happen; the refusal is written to the audit log.',
     },
   ];
 
@@ -85,9 +85,10 @@ export function HowItWorks() {
           </h2>
         </div>
         <p className="max-w-[46ch] text-[15px] leading-[1.45] text-muted">
-          Agents spawn agents faster than anyone can keep track of by hand. This is the org chart for that work — who
-          authorized it, how far it reaches, when it lapses — held together by signatures that link each Passport to
-          its parent, a guard on every field, an expiry on every hop, and an audit entry for every decision.
+          Agents spawn agents faster than anyone can keep track of by hand. An AI Passport carries scoped, signed
+          authority between them: a holder issues one, an agent carries it, a verifier checks it. This is the org
+          chart for that work — held together by signatures that link each child Passport to its parent, a guard on
+          every field, an expiry on every hop, and an audit entry for every decision.
         </p>
       </div>
 
@@ -102,9 +103,9 @@ export function HowItWorks() {
 
       <p className="mt-10 max-w-[70ch] border-t border-hairline pt-6 text-[15px] leading-relaxed text-ink">
         This is for an operations lead running a real team. Handing work to agents stops being something you hope
-        stayed in bounds and becomes something you can point at: every agent&rsquo;s remit written down, traced to the
-        person who signed it, and provable to every downstream service — so work gets delegated safely without giving
-        away more context than necessary.
+        stayed in bounds and becomes something you can point at: every agent&rsquo;s remit written into an AI Passport,
+        traced to the person who signed the root, and provable to every downstream verifier — so work gets delegated
+        safely without giving away more context than necessary.
       </p>
     </div>
   );
