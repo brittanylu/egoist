@@ -13,7 +13,7 @@ import { RevocationControls } from '@/components/RevocationControls';
 import { Tabs } from '@/components/Tabs';
 import { TeamDashboard } from '@/components/TeamDashboard';
 import { Toast } from '@/components/Toast';
-import { ClockProvider, Em, Pill, SectionHeading } from '@/components/ui';
+import { ClockProvider, Em, SectionHeading } from '@/components/ui';
 import { ACTOR_BY_ID } from '@/lib/seed';
 import { TEAM_NAME, isTeamMember } from '@/lib/team';
 import { ensureSeeded, useDemo } from '@/lib/store';
@@ -49,12 +49,9 @@ export default function Page() {
             <span aria-hidden className="h-[11px] w-px shrink-0 bg-hairline" />
             <EgoistMark />
           </div>
-          <div className="flex items-center gap-3">
-            <Pill>Work Track</Pill>
-            <button type="button" className="btn-secondary" onClick={reset}>
-              Reset demo
-            </button>
-          </div>
+          <button type="button" className="btn-secondary" onClick={reset}>
+            Reset demo
+          </button>
         </header>
 
         {/* Hero */}
