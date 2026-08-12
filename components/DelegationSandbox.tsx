@@ -135,7 +135,7 @@ export function DelegationSandbox() {
           <select
             value={parentId}
             onChange={(event) => setParentId(event.target.value)}
-            className="rounded-md border border-hairline bg-white px-2.5 py-1.5 text-[13px]"
+            className="rounded-md border border-hairline bg-canvas px-2.5 py-1.5 text-[13px]"
           >
             {delegable.map((p) => (
               <option key={p.claims.id} value={p.claims.id}>
@@ -150,7 +150,7 @@ export function DelegationSandbox() {
           <input
             value={draft.subject}
             onChange={(event) => setDraft((d) => ({ ...d, subject: event.target.value }))}
-            className="w-[120px] rounded-md border border-hairline bg-white px-2.5 py-1.5 font-mono text-[13px]"
+            className="w-[120px] rounded-md border border-hairline bg-canvas px-2.5 py-1.5 font-mono text-[13px]"
           />
         </label>
         <div className="ml-auto text-right font-mono text-[11px] leading-relaxed text-muted">
@@ -170,7 +170,7 @@ export function DelegationSandbox() {
             key={preset.key}
             type="button"
             onClick={() => setDraft((d) => preset.apply(d, parent.claims.actions))}
-            className="rounded-full border border-deny/25 bg-white px-3 py-1.5 text-[12px] text-deny transition-all duration-200 ease-calm hover:bg-deny/[0.05]"
+            className="rounded-full border border-deny/25 bg-canvas px-3 py-1.5 text-[12px] text-deny transition-all duration-200 ease-calm hover:bg-canvas"
             title={preset.hint}
           >
             {preset.title}
@@ -179,7 +179,7 @@ export function DelegationSandbox() {
       </div>
 
       {/* Manual request */}
-      <div className="mt-4 space-y-3 rounded-card border border-hairline bg-canvas/60 p-3.5">
+      <div className="mt-4 space-y-3 rounded-card border border-hairline bg-surface p-3.5">
         <div>
           <div className="label">Actions requested</div>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -197,7 +197,7 @@ export function DelegationSandbox() {
                       ? parentHas
                         ? 'border-ink bg-ink text-canvas'
                         : 'border-deny bg-deny text-white'
-                      : 'border-hairline bg-white text-muted hover:border-ink/30',
+                      : 'border-hairline bg-canvas text-muted hover:border-ink/30',
                   )}
                 >
                   {action}
@@ -225,7 +225,7 @@ export function DelegationSandbox() {
                       ? parentHas
                         ? 'border-ink bg-ink text-canvas'
                         : 'border-deny bg-deny text-white'
-                      : 'border-hairline bg-white text-muted hover:border-ink/30',
+                      : 'border-hairline bg-canvas text-muted hover:border-ink/30',
                   )}
                 >
                   {destination}
@@ -245,7 +245,7 @@ export function DelegationSandbox() {
               value={draft.budgetUsd}
               onChange={(event) => setDraft((d) => ({ ...d, budgetUsd: Number(event.target.value) }))}
               className={cx(
-                'w-[92px] rounded-md border bg-white px-2.5 py-1.5 font-mono text-[13px]',
+                'w-[92px] rounded-md border bg-canvas px-2.5 py-1.5 font-mono text-[13px]',
                 draft.budgetUsd > parent.claims.budgetUsd ? 'border-deny text-deny' : 'border-hairline',
               )}
             />
@@ -258,7 +258,7 @@ export function DelegationSandbox() {
               value={draft.hours}
               onChange={(event) => setDraft((d) => ({ ...d, hours: Number(event.target.value) }))}
               className={cx(
-                'w-[92px] rounded-md border bg-white px-2.5 py-1.5 font-mono text-[13px]',
+                'w-[92px] rounded-md border bg-canvas px-2.5 py-1.5 font-mono text-[13px]',
                 Date.now() + draft.hours * HOUR > parent.claims.expiresAt ? 'border-deny text-deny' : 'border-hairline',
               )}
             />
@@ -268,7 +268,7 @@ export function DelegationSandbox() {
               type="checkbox"
               checked={draft.canDelegate}
               onChange={(event) => setDraft((d) => ({ ...d, canDelegate: event.target.checked }))}
-              className="h-3.5 w-3.5 accent-[#14161A]"
+              className="h-3.5 w-3.5 accent-[#0A0A0A]"
             />
             may delegate further
           </label>
@@ -282,8 +282,8 @@ export function DelegationSandbox() {
       {sandbox && (
         <div
           className={cx(
-            'mt-4 animate-receipt-up rounded-card border p-4',
-            sandbox.ok ? 'border-allow/25 bg-allow/[0.04]' : 'border-deny/25 bg-deny/[0.04]',
+            'mt-4 animate-receipt rounded-card border p-4',
+            sandbox.ok ? 'border-allow/25 bg-canvas' : 'border-deny/25 bg-canvas',
           )}
         >
           {sandbox.ok ? (
@@ -329,7 +329,7 @@ export function DelegationSandbox() {
               </p>
               <div className="mt-3 space-y-2">
                 {sandbox.violations.map((violation, i) => (
-                  <div key={`${violation.field}-${i}`} className="rounded-md border border-deny/15 bg-white/70 p-2.5">
+                  <div key={`${violation.field}-${i}`} className="rounded-md border border-deny/15 bg-canvas p-2.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <Chip tone="deny">{violation.field}</Chip>
                       <span className="font-mono text-[11.5px] text-deny">

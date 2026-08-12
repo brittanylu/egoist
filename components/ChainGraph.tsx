@@ -56,12 +56,12 @@ function NodeCard({
       type="button"
       onClick={() => select(claims.id)}
       className={cx(
-        'group w-[248px] shrink-0 rounded-card border bg-white p-3.5 text-left transition-all duration-300 ease-calm',
-        'hover:border-ink/25',
-        selected ? 'border-ink shadow-[0_0_0_3px_rgba(20,22,26,0.06)]' : 'border-hairline',
-        traced && !selected && 'border-accent-ink/40 shadow-[0_0_0_3px_rgba(75,63,143,0.08)]',
-        !ok && 'border-deny/35 bg-deny/[0.02]',
-        justRevoked && !ok && 'animate-fade-in',
+        'group w-[248px] shrink-0 rounded-card border bg-canvas p-3.5 text-left transition-all duration-300 ease-calm',
+        'hover:border-ink/30',
+        selected ? 'border-ink' : 'border-hairline',
+        traced && !selected && 'border-ink/45',
+        !ok && 'border-deny/35',
+        justRevoked && !ok && 'animate-fade',
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -86,7 +86,7 @@ function NodeCard({
       </div>
 
       {brokenLabel && (
-        <div className="mt-2.5 rounded-md bg-deny/[0.06] px-2 py-1 text-2xs font-medium text-deny">
+        <div className="mt-2.5 rounded-md border border-deny/20 px-2 py-1 text-2xs font-medium text-deny">
           {brokenLabel}
         </div>
       )}
@@ -105,7 +105,7 @@ function NodeCard({
         {scopeChips(claims, root).map((scope, i) => (
           <Chip
             key={`${scope.label}-${i}`}
-            tone={scope.held ? (scope.narrowed ? 'accent' : 'default') : 'lost'}
+            tone={scope.held ? (scope.narrowed ? 'strong' : 'default') : 'lost'}
             title={scope.narrowed ? 'narrowed into a sub-scope of the parent' : undefined}
           >
             {scope.label}
@@ -155,7 +155,7 @@ function TreeNode({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="animate-fade-up" style={{ animationDelay: `${depth * 70}ms` }}>
+      <div className="animate-fade" style={{ animationDelay: `${depth * 70}ms` }}>
         <NodeCard passport={passport} root={root} statuses={statuses} />
       </div>
 
@@ -202,23 +202,29 @@ function TreeNode({
   );
 }
 
-/** The human holder. Not a Passport — the place all of this authority comes from. */
+/**
+ * The human holder. Not a Passport — the place all of this authority comes from.
+ * The one inverted surface on the page, so the origin of authority reads as the
+ * origin at a glance.
+ */
 function HolderCard({ root }: { root: PassportClaims }) {
   const actor = ACTOR_BY_ID[root.issuer];
   return (
-    <div className="w-[248px] shrink-0 animate-fade-up rounded-card bg-ink-panel p-3.5 text-canvas">
+    <div className="panel-invert w-[248px] shrink-0 animate-fade p-3.5">
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="text-[14px] font-medium leading-tight tracking-tightest">{actor?.label ?? root.issuer}</div>
           <div className="mt-0.5 text-[11.5px] text-canvas/55">{actor?.role ?? 'Human holder'}</div>
         </div>
-        <span className="rounded-full bg-accent px-2 py-[3px] text-2xs font-medium text-accent-ink">holder</span>
+        <span className="rounded-full border border-white/25 px-2 py-[3px] text-2xs font-medium text-canvas/80">
+          holder
+        </span>
       </div>
       <p className="mt-3 text-[12px] leading-relaxed text-canvas/70">
         Issues the root Passport. Everything below inherits from here, and nothing below can exceed it.
       </p>
       <div className="mt-3 flex flex-wrap gap-1 border-t border-white/10 pt-2.5">
-        <Chip tone="dark">signing key held by human</Chip>
+        <Chip tone="invert">signing key held by human</Chip>
       </div>
     </div>
   );

@@ -24,6 +24,11 @@ export function useNow(): number {
   return useContext(ClockContext) || Date.now();
 }
 
+/** An emphasis word inside a heading, set in a real italic. */
+export function Em({ children }: { children: ReactNode }) {
+  return <span className="em">{children}</span>;
+}
+
 // ── Chips ─────────────────────────────────────────────────────────────────────
 export function Chip({
   children,
@@ -32,18 +37,18 @@ export function Chip({
   title,
 }: {
   children: ReactNode;
-  tone?: 'default' | 'accent' | 'dim' | 'lost' | 'allow' | 'deny' | 'dark';
+  tone?: 'default' | 'strong' | 'dim' | 'lost' | 'allow' | 'deny' | 'invert';
   className?: string;
   title?: string;
 }) {
   const tones: Record<string, string> = {
     default: 'chip',
-    accent: 'chip chip-accent',
+    strong: 'chip chip-strong',
     dim: 'chip chip-dim',
-    lost: 'chip chip-dim line-through decoration-muted/60 opacity-55',
-    allow: 'chip border-allow/25 bg-allow/[0.07] text-allow',
-    deny: 'chip border-deny/25 bg-deny/[0.07] text-deny',
-    dark: 'chip border-white/15 bg-white/5 text-canvas/80',
+    lost: 'chip chip-dim line-through decoration-muted/50 opacity-50',
+    allow: 'chip border-allow/25 text-allow',
+    deny: 'chip border-deny/25 text-deny',
+    invert: 'chip border-white/20 bg-white/[0.07] text-canvas/80',
   };
   return (
     <span className={cx(tones[tone], className)} title={title}>
@@ -54,7 +59,7 @@ export function Chip({
 
 export function Pill({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-2xs font-medium uppercase tracking-[0.16em] text-accent-ink">
+    <span className="inline-flex items-center rounded-full border border-hairline px-3 py-1 text-2xs font-medium uppercase tracking-[0.16em] text-muted">
       {children}
     </span>
   );
@@ -70,7 +75,7 @@ export function StatusBadge({ ok, label }: { ok: boolean; label?: string }) {
     <span
       className={cx(
         'inline-flex items-center gap-1.5 rounded-full border px-2 py-[3px] text-2xs font-medium',
-        ok ? 'border-allow/25 bg-allow/[0.07] text-allow' : 'border-deny/25 bg-deny/[0.07] text-deny',
+        ok ? 'border-allow/25 text-allow' : 'border-deny/25 text-deny',
       )}
     >
       <Dot tone={ok ? 'allow' : 'deny'} />
@@ -94,8 +99,8 @@ export function SectionHeading({
     <div className="flex items-start justify-between gap-4">
       <div>
         <div className="label">{eyebrow}</div>
-        <h2 className="mt-1.5 text-[19px] font-medium leading-tight tracking-tightest">{title}</h2>
-        {hint && <p className="mt-1.5 max-w-prose text-[13px] leading-relaxed text-muted">{hint}</p>}
+        <h2 className="display mt-2 text-[21px]">{title}</h2>
+        {hint && <p className="mt-2 max-w-prose text-[13.5px] leading-relaxed text-muted">{hint}</p>}
       </div>
       {action}
     </div>

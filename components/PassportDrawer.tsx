@@ -37,7 +37,7 @@ export function PassportDrawer() {
   const isTraced = tracedPath?.includes(claims.id) && tracedPath.length === verification.chain.length;
 
   return (
-    <div className="card animate-slide-in-right p-5">
+    <div className="card animate-fade p-5">
       <SectionHeading
         eyebrow="Passport"
         title={actor?.label ?? claims.subject}
@@ -47,7 +47,7 @@ export function PassportDrawer() {
       <p className="mt-3 text-[13px] leading-relaxed text-muted">{claims.task}</p>
 
       {!verification.allowed && verification.reason && (
-        <p className="mt-3 rounded-md border border-deny/20 bg-deny/[0.05] p-2.5 text-[12.5px] leading-relaxed text-deny">
+        <p className="mt-3 rounded-md border border-deny/20 bg-canvas p-2.5 text-[12.5px] leading-relaxed text-deny">
           {verification.reason}
         </p>
       )}
@@ -88,7 +88,7 @@ export function PassportDrawer() {
         <KeyValue label="Context">
           <span className="flex flex-wrap gap-1">
             {claims.contextScopes.map((s) => (
-              <Chip key={s} tone="accent">
+              <Chip key={s} tone="strong">
                 {s}
               </Chip>
             ))}
@@ -136,17 +136,17 @@ export function PassportDrawer() {
       </div>
 
       {isTraced && (
-        <div className="mt-3 animate-fade-up rounded-md border border-accent-ink/20 bg-accent/40 p-3">
-          <div className="label text-accent-ink/80">Authority traced</div>
-          <div className="mt-1.5 font-mono text-[12px] leading-relaxed text-accent-ink">
+        <div className="panel-soft mt-3 animate-fade p-3">
+          <div className="label">Authority traced</div>
+          <div className="mt-1.5 font-mono text-[12px] leading-relaxed text-ink">
             {path.map((id, i) => (
               <span key={`${id}-${i}`}>
                 {ACTOR_BY_ID[id]?.label ?? id}
-                {i < path.length - 1 && <span className="mx-1.5 text-accent-ink/50">→</span>}
+                {i < path.length - 1 && <span className="mx-1.5 text-muted">→</span>}
               </span>
             ))}
           </div>
-          <p className="mt-2 text-[11.5px] leading-relaxed text-accent-ink/80">
+          <p className="mt-2 text-[11.5px] leading-relaxed text-muted">
             Every hop verified against its parent. Authority never widened along this path.
           </p>
         </div>

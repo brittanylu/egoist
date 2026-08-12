@@ -45,7 +45,7 @@ export function ReceiptsLog() {
             onClick={() => setFilter(option)}
             className={cx(
               'rounded-full border px-2.5 py-1 text-[11.5px] transition-all duration-200',
-              filter === option ? 'border-ink bg-ink text-canvas' : 'border-hairline bg-white text-muted hover:border-ink/30',
+              filter === option ? 'border-ink bg-ink text-canvas' : 'border-hairline bg-canvas text-muted hover:border-ink/30',
             )}
           >
             {option} {counts[option]}

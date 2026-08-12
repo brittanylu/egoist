@@ -1,11 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#14161A" />
-  <path
-    d="M11 11c-2.6 0-4.6 1.9-4.6 4.3s2 4.3 4.6 4.3c1.8 0 3.1-1 4.3-2.3l1.9-2.1c1.2-1.3 2.5-2.3 4.3-2.3 2.6 0 4.6 1.9 4.6 4.3s-2 4.3-4.6 4.3c-1.8 0-3.1-1-4.3-2.3l-1.9-2.1C14.1 14.8 12.8 13.8 11 13.8"
-    transform="translate(-1 -1) scale(0.92) translate(1.4 1.6)"
-    fill="none"
-    stroke="#F5F4EF"
-    stroke-width="1.9"
-    stroke-linecap="round"
-  />
+  <rect width="32" height="32" rx="6" fill="#0A0A0A" />
+  <text
+    x="16"
+    y="22.5"
+    text-anchor="middle"
+    font-family="Geist, Inter, Helvetica, Arial, sans-serif"
+    font-size="19"
+    font-weight="600"
+    letter-spacing="-0.5"
+    fill="#FFFFFF"
+  >C</text>
 </svg>

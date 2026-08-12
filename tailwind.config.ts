@@ -5,22 +5,23 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        canvas: '#F5F4EF',
-        ink: '#14161A',
-        'ink-panel': '#1C1E22',
-        muted: '#6B7078',
-        hairline: '#E4E2DA',
-        accent: '#E7E1F7',
-        'accent-ink': '#4B3F8F',
-        allow: '#1F7A4D',
-        deny: '#B23A34',
+        canvas: '#FFFFFF', // --bg
+        surface: '#FAFAF8', // --bg-soft
+        ink: '#0A0A0A', // --text
+        muted: '#6B7280', // --muted
+        hairline: '#ECECEC', // --border
+        allow: '#15803D',
+        deny: '#B91C1C',
       },
       fontFamily: {
         sans: ['var(--font-geist-sans)', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        // A true italic, for emphasis words inside headings. Geist ships no italic,
+        // so a synthetic slant is avoided in favour of a real one.
+        italic: ['var(--font-instrument-serif)', 'Georgia', 'serif'],
       },
       borderRadius: {
-        card: '14px',
+        card: '10px',
       },
       fontSize: {
         '2xs': ['11px', '14px'],
@@ -28,29 +29,20 @@ const config: Config = {
       letterSpacing: {
         tightest: '-0.03em',
       },
+      lineHeight: {
+        display: '1.05',
+      },
       keyframes: {
-        'fade-up': {
-          '0%': { opacity: '0', transform: 'translateY(8px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        'fade-in': {
+        // Quiet fades only: no travel, no bounce.
+        fade: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
-        'slide-in-right': {
-          '0%': { opacity: '0', transform: 'translateX(16px)' },
-          '100%': { opacity: '1', transform: 'translateX(0)' },
-        },
-        'receipt-up': {
-          '0%': { opacity: '0', transform: 'translateY(14px) scale(0.995)' },
-          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
-        },
       },
       animation: {
-        'fade-up': 'fade-up 380ms cubic-bezier(0.22, 0.61, 0.36, 1) both',
-        'fade-in': 'fade-in 300ms ease-out both',
-        'slide-in-right': 'slide-in-right 300ms cubic-bezier(0.22, 0.61, 0.36, 1) both',
-        'receipt-up': 'receipt-up 340ms cubic-bezier(0.22, 0.61, 0.36, 1) both',
+        fade: 'fade 320ms ease-out both',
+        'fade-slow': 'fade 520ms ease-out both',
+        receipt: 'fade 380ms ease-out both',
       },
       transitionTimingFunction: {
         calm: 'cubic-bezier(0.22, 0.61, 0.36, 1)',

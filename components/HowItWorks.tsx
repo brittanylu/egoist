@@ -4,7 +4,7 @@
  * The Agents-track checklist, said plainly and in one place: holder, agent,
  * verifier, scope, expiry, revocation, receipts, and what happens out of scope.
  */
-import { useNow } from './ui';
+import { Em, useNow } from './ui';
 import { formatCountdown } from '@/lib/authority';
 import { useDemo } from '@/lib/store';
 
@@ -58,30 +58,30 @@ export function HowItWorks() {
   ];
 
   return (
-    <div className="panel-dark p-6 sm:p-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="panel-soft p-7 sm:p-10">
+      <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <div className="label text-canvas/45">How it works</div>
-          <h2 className="mt-2 max-w-[18ch] text-[26px] font-medium leading-[1.15] tracking-tightest text-canvas sm:text-[30px]">
-            Narrow in, narrow out.
+          <div className="label">How it works</div>
+          <h2 className="display mt-3 max-w-[20ch] text-[30px] sm:text-[38px]">
+            Authority should <Em>shrink</Em> as it travels.
           </h2>
         </div>
-        <p className="max-w-[46ch] text-[13.5px] leading-relaxed text-canvas/60">
+        <p className="max-w-[46ch] text-[14px] leading-relaxed text-muted">
           Four things hold this together: signatures that link each Passport to its parent, a subset check on every
           field, an expiry on every hop, and a receipt for every decision.
         </p>
       </div>
 
-      <dl className="mt-7 grid gap-x-10 gap-y-5 sm:grid-cols-2">
+      <dl className="mt-9 grid gap-x-12 gap-y-6 sm:grid-cols-2">
         {items.map((item) => (
-          <div key={item.term} className="border-t border-white/10 pt-3.5">
-            <dt className="text-[13px] font-medium text-canvas">{item.term}</dt>
-            <dd className="mt-1.5 text-[12.5px] leading-relaxed text-canvas/60">{item.detail}</dd>
+          <div key={item.term} className="border-t border-hairline pt-4">
+            <dt className="text-[13.5px] font-medium text-ink">{item.term}</dt>
+            <dd className="mt-2 text-[13px] leading-relaxed text-muted">{item.detail}</dd>
           </div>
         ))}
       </dl>
 
-      <p className="mt-8 max-w-[70ch] border-t border-white/10 pt-5 text-[14px] leading-relaxed text-canvas/85">
+      <p className="mt-10 max-w-[70ch] border-t border-hairline pt-6 text-[15px] leading-relaxed text-ink">
         This is for an operations lead, who needs to prove to every downstream service that an agent&rsquo;s
         authority came from them and never grew — so work gets delegated safely without giving away more context than
         necessary.

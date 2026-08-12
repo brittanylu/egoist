@@ -26,8 +26,8 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
   return (
     <div
       className={cx(
-        'rounded-card border p-4 animate-receipt-up',
-        allowed ? 'border-allow/25 bg-allow/[0.04]' : 'border-deny/25 bg-deny/[0.04]',
+        'rounded-card border p-4 animate-receipt',
+        allowed ? 'border-allow/25 bg-canvas' : 'border-deny/25 bg-canvas',
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -50,7 +50,7 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
       <p className="mt-3 text-[13px] leading-relaxed text-ink/90">{receipt.detail}</p>
 
       {receipt.kind === 'refusal' && (
-        <div className="mt-3 grid gap-x-6 gap-y-2 rounded-md border border-deny/15 bg-white/60 p-3 sm:grid-cols-2">
+        <div className="mt-3 grid gap-x-6 gap-y-2 rounded-md border border-deny/15 bg-surface p-3 sm:grid-cols-2">
           <div>
             <div className="label text-deny/80">Blocked by</div>
             <div className="mt-1 font-mono text-[12px]">
@@ -95,7 +95,7 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-black/[0.06] pt-2.5 font-mono text-[11px] text-muted">
+      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-hairline pt-2.5 font-mono text-[11px] text-muted">
         {receipt.chainPath.map((id, i) => (
           <span key={`${id}-${i}`} className="flex items-center gap-1.5">
             <span className={i === 0 ? 'text-ink' : undefined}>{label(id)}</span>

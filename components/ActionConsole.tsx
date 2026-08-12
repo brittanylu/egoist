@@ -81,8 +81,8 @@ export function ActionConsole() {
               className={cx(
                 'flex-1 min-w-[220px] rounded-card border p-3.5 text-left transition-all duration-200 ease-calm disabled:opacity-60',
                 item.tone === 'deny'
-                  ? 'border-deny/25 bg-white hover:border-deny/50 hover:bg-deny/[0.03]'
-                  : 'border-hairline bg-white hover:border-ink/35',
+                  ? 'border-deny/25 bg-canvas hover:border-deny/50 hover:bg-canvas'
+                  : 'border-hairline bg-canvas hover:border-ink/35',
               )}
             >
               <div className="flex items-center justify-between gap-2">
@@ -101,7 +101,7 @@ export function ActionConsole() {
       </div>
 
       {verification && !verification.allowed && (
-        <p className="mt-3 rounded-md border border-deny/20 bg-deny/[0.05] p-2.5 text-[12.5px] leading-relaxed text-deny">
+        <p className="mt-3 rounded-md border border-deny/20 bg-canvas p-2.5 text-[12.5px] leading-relaxed text-deny">
           {actor?.label ?? leaf.claims.subject}&rsquo;s chain is currently broken, so every action it attempts will
           be refused: {verification.reason}
         </p>

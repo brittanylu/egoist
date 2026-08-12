@@ -9,7 +9,7 @@ import { HowItWorks } from '@/components/HowItWorks';
 import { PassportDrawer } from '@/components/PassportDrawer';
 import { ReceiptsLog } from '@/components/ReceiptsLog';
 import { RevocationControls } from '@/components/RevocationControls';
-import { ClockProvider, Pill, SectionHeading } from '@/components/ui';
+import { ClockProvider, Em, Pill, SectionHeading } from '@/components/ui';
 import { ensureSeeded, useDemo } from '@/lib/store';
 
 export default function Page() {
@@ -22,7 +22,7 @@ export default function Page() {
 
   return (
     <ClockProvider>
-      <div className="mx-auto w-full max-w-[1240px] px-5 pb-16 pt-7 sm:px-8">
+      <div className="mx-auto w-full max-w-[1200px] px-5 pb-24 pt-8 sm:px-8">
         {/* Header */}
         <header className="flex flex-wrap items-center justify-between gap-4">
           <Brand />
@@ -35,13 +35,11 @@ export default function Page() {
         </header>
 
         {/* Hero */}
-        <section className="mt-14 max-w-[62ch]">
-          <h1 className="text-[38px] font-medium leading-[1.08] tracking-tightest sm:text-[52px]">
-            Trust should travel
-            <br />
-            without growing.
+        <section className="mt-20 max-w-[62ch] sm:mt-28">
+          <h1 className="display text-[46px] sm:text-[68px]">
+            Stop permission <Em>laundering</Em>.
           </h1>
-          <p className="mt-5 text-[15.5px] leading-relaxed text-muted">
+          <p className="mt-7 max-w-[58ch] text-[16px] leading-relaxed text-muted">
             An Ops Lead authorizes one agent to clean up three years of support tickets. That agent delegates, and its
             delegate delegates again. Watch the authority get strictly narrower at every hop — then watch the last
             agent try to exceed it.
@@ -49,11 +47,11 @@ export default function Page() {
         </section>
 
         {!seeded ? (
-          <div className="mt-12 card p-12 text-center text-[13px] text-muted">Minting the seed chain…</div>
+          <div className="card mt-20 p-16 text-center text-[13px] text-muted">Minting the seed chain…</div>
         ) : (
           <>
             {/* Chain + Passport detail */}
-            <section className="mt-12 grid gap-6 lg:grid-cols-[minmax(0,1fr)_368px]">
+            <section className="mt-20 grid gap-6 lg:grid-cols-[minmax(0,1fr)_368px]">
               {/* min-w-0: the graph scrolls horizontally, and without this its
                   min-content width would stretch the whole page. */}
               <div className="card min-w-0 p-5">
@@ -84,13 +82,13 @@ export default function Page() {
               <ReceiptsLog />
             </section>
 
-            <section className="mt-6">
+            <section className="mt-20">
               <HowItWorks />
             </section>
           </>
         )}
 
-        <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-5 text-[12px] text-muted">
+        <footer className="mt-20 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-5 text-[12px] text-muted">
           <span>AI Passport Ideathon · Agents track</span>
           <span className="font-mono">
             Ed25519 signatures · narrowing enforced in lib/passport.ts · verified at /api/verify
