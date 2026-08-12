@@ -9,16 +9,20 @@ const config: Config = {
         surface: '#FAFAF8', // --bg-soft
         ink: '#0A0A0A', // --text
         muted: '#6B7280', // --muted
-        hairline: '#ECECEC', // --border
+        hairline: '#D6D6D6', // --border
         allow: '#15803D',
         deny: '#B91C1C',
+        // One accent per tier of the chain, used at hairline weight only: a rail, a
+        // badge outline, a 4% wash. Both sit far enough from allow/deny in hue that
+        // a tinted card never reads as a verdict.
+        tier: {
+          agent: '#9A4F26', // primary agent — warm, one card, top of the machine chain
+          sub: '#3A4E8C', // subagents — cool, recessive, however many there are
+        },
       },
       fontFamily: {
         sans: ['var(--font-geist-sans)', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'ui-monospace', 'SFMono-Regular', 'monospace'],
-        // A true italic, for emphasis words inside headings. Geist ships no italic,
-        // so a synthetic slant is avoided in favour of a real one.
-        italic: ['var(--font-instrument-serif)', 'Georgia', 'serif'],
       },
       borderRadius: {
         card: '10px',
@@ -28,9 +32,13 @@ const config: Config = {
       },
       letterSpacing: {
         tightest: '-0.03em',
+        // Headline tracking. Only survivable because the face is set at 900 — at
+        // lighter weights the words start to fuse.
+        display: '-0.045em',
       },
       lineHeight: {
-        display: '1.05',
+        // Under 1: at this weight the lines want to stack as a block, not a list.
+        display: '0.9',
       },
       keyframes: {
         // Quiet fades only: no travel, no bounce.

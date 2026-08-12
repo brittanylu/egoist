@@ -18,7 +18,7 @@ import { sha256 } from '@noble/hashes/sha256';
 ed.etc.sha512Sync = (...m: Uint8Array[]) => sha512(ed.etc.concatBytes(...m));
 
 export interface KeyPair {
-  /** Agent or holder identifier this key belongs to, e.g. 'agent-c'. */
+  /** Agent or holder identifier this key belongs to, e.g. 'classifier-subagent'. */
   id: string;
   privateKeyHex: string;
   publicKeyHex: string;

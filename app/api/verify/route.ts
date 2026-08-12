@@ -7,7 +7,7 @@
  * "who is asking?" and "where did their authority come from?"
  *
  * Note what it does NOT do: take the leaf agent's word for its own permissions.
- * Every hop's signature and every narrowing relation is re-derived here.
+ * Every hop's signature and every guard is re-derived here.
  */
 import { NextResponse } from 'next/server';
 import { Action, Destination, Registry, authorizeAction, verifyChain } from '@/lib/passport';
@@ -63,12 +63,13 @@ export async function GET() {
   return NextResponse.json({
     service: 'chain-of-custody verifier',
     accepts: 'POST { registry, leafPassportId, action, destination }',
-    checks: [
-      'Ed25519 signature on every Passport, hash-linked to its parent',
-      'narrowing invariant re-derived at every hop (child ⊆ parent)',
-      'expiry on every Passport in the ancestry',
-      'revocation on every Passport in the ancestry',
-      'requested action and destination within the leaf Passport',
+    guards: [
+      'guard:signature — Ed25519 on every Passport, hash-linked to its parent',
+      'guard:actions, guard:context, guard:destinations, guard:budget, guard:depth — child ⊆ parent, re-derived at every hop',
+      'guard:expiry — every Passport in the ancestry',
+      'guard:revocation — every Passport in the ancestry',
+      'guard:requested-action, guard:requested-destination — the request against the leaf Passport',
     ],
+    onFailure: 'refusal written to the append-only audit log; request falls back to requiring human authority',
   });
 }

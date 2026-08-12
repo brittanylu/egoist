@@ -1,27 +1,31 @@
 'use client';
 
 /**
- * Revocation. The holder can kill the whole tree, or one branch of it.
+ * Revocation — the last stage of the loop. The holder can retire the whole tree, or
+ * one branch of it.
  *
  * Nothing cascades explicitly: `verifyChain` walks to the root, so revoking one
- * Passport invalidates everything beneath it the instant the flag is set, and
+ * Passport moves everything beneath it to `revoked` the instant the flag is set, and
  * touches no sibling branch.
  */
-import { descendantsOf } from '@/lib/passport';
+import { childrenOf, descendantsOf } from '@/lib/passport';
 import { ACTOR_BY_ID } from '@/lib/seed';
+import { holderLine, isTeamMember } from '@/lib/team';
 import { useDemo } from '@/lib/store';
-import { Chip, SectionHeading, cx } from './ui';
+import { Chip, Em, SectionHeading, cx } from './ui';
 import { useChainStatuses } from './useChainStatus';
 
 export function RevocationControls() {
   const statuses = useChainStatuses();
-  const { registry, rootId, passportBySubject, revokePassport, reset } = useDemo();
+  const { registry, rootId, revokePassport, reset } = useDemo();
 
   const root = registry.passports[rootId];
-  const branchId = passportBySubject['agent-b'];
-  const branch = branchId ? registry.passports[branchId] : undefined;
-
   if (!root) return null;
+
+  // Whichever branch the primary agent spawned first — the chain's shape depends on
+  // what the human launched, so this cannot be pinned to one named subagent.
+  const branch = childrenOf(registry, rootId)[0];
+  const issuer = root.claims.issuer;
 
   const label = (id: string) => ACTOR_BY_ID[id]?.label ?? id;
   const statusOf = (id: string) => statuses[id]?.allowed ?? false;
@@ -35,8 +39,18 @@ export function RevocationControls() {
     <div className="card p-5">
       <SectionHeading
         eyebrow="Revocation"
-        title="Withdraw authority"
-        hint="Revoking a Passport invalidates its whole subtree, and nothing else."
+        title={
+          <>
+            Withdraw <Em>authority</Em>.
+          </>
+        }
+        hint={
+          <>
+            Only {isTeamMember(issuer) ? holderLine(issuer) : label(issuer)} can do this — no agent on the chain can
+            withdraw anything, including its own. Revoking moves a Passport from active to revoked, and takes its whole
+            subtree with it. Nothing else moves.
+          </>
+        }
       />
 
       <div className="mt-4 space-y-2.5">
@@ -73,23 +87,23 @@ export function RevocationControls() {
           <div className="label">Effect on the tree</div>
           <div className="mt-2 grid gap-3 sm:grid-cols-2">
             <div>
-              <div className="text-2xs uppercase tracking-[0.1em] text-muted">
+              <div className="text-[12px] uppercase tracking-[0.1em] text-muted">
                 {label(branch.claims.subject)} subtree
               </div>
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {branchSubtree.map((p) => (
-                  <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'}>
-                    {label(p.claims.subject)}
+                  <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'} className="chip-mono">
+                    {label(p.claims.subject)} · {statusOf(p.claims.id) ? 'active' : 'revoked'}
                   </Chip>
                 ))}
               </div>
             </div>
             <div>
-              <div className="text-2xs uppercase tracking-[0.1em] text-muted">Unrelated branches</div>
+              <div className="text-[12px] uppercase tracking-[0.1em] text-muted">Unrelated branches</div>
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {others.map((p) => (
-                  <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'}>
-                    {label(p.claims.subject)}
+                  <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'} className="chip-mono">
+                    {label(p.claims.subject)} · {statusOf(p.claims.id) ? 'active' : 'revoked'}
                   </Chip>
                 ))}
               </div>

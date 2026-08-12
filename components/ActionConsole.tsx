@@ -1,15 +1,16 @@
 'use client';
 
 /**
- * The judge drives Agent C, the leaf of the chain, and watches the verifier decide.
- * One action is inside its inherited authority. One is not, and never was — at any
+ * The judge drives the classifier subagent — the leaf of the chain — and watches the
+ * verifier decide.
+ * One action passes every guard. One fails a guard, and always would have — at any
  * point on the chain, all the way up to the human.
  */
 import { Action, Destination } from '@/lib/passport';
 import { ACTOR_BY_ID } from '@/lib/seed';
 import { useDemo } from '@/lib/store';
 import { ReceiptCard } from './ReceiptCard';
-import { Chip, SectionHeading, cx } from './ui';
+import { Chip, Em, SectionHeading, cx } from './ui';
 import { useChainStatuses } from './useChainStatus';
 
 interface Attempt {
@@ -22,25 +23,20 @@ interface Attempt {
   tone: 'primary' | 'deny';
 }
 
-const ATTEMPTS: Attempt[] = [
-  {
-    key: 'classify',
-    title: 'Classify ticket internally',
-    hint: 'inside inherited authority',
-    action: 'classify',
-    destination: 'internal-only',
-    note: 'ticket #4471',
-    tone: 'primary',
-  },
-  {
-    key: 'send',
-    title: 'Send data to external service',
-    hint: 'never granted by the human',
-    action: 'send',
-    destination: 'external-webhook',
-    tone: 'deny',
-  },
-];
+/**
+ * The internal action to offer, and what to call it. Which one appears depends on
+ * what the leaf actually inherited — a human who never ticked "Classify" produces a
+ * chain where no agent can classify, and the console should not pretend otherwise.
+ */
+const INTERNAL_ATTEMPTS: Partial<Record<Action, { title: string; note: string }>> = {
+  classify: { title: 'Classify ticket internally', note: 'ticket #4471' },
+  write: { title: 'Write the internal digest', note: 'digest draft' },
+  read: { title: 'Read ticket text internally', note: 'ticket #4471' },
+  send: { title: 'Send results internally', note: 'theme summary' },
+};
+
+/** Preference order: the most characteristic thing this agent could do, first. */
+const INTERNAL_ORDER: Action[] = ['classify', 'write', 'read', 'send'];
 
 export function ActionConsole() {
   const statuses = useChainStatuses();
@@ -53,23 +49,64 @@ export function ActionConsole() {
   const actor = ACTOR_BY_ID[leaf.claims.subject];
   const verification = statuses[leafId];
 
+  // One action inside what it inherited, one outside. The second is only a refusal
+  // because a person left external transfer off the root grant — if they turned it on,
+  // it passes, and saying so is more honest than a button that always fails.
+  const passAction = INTERNAL_ORDER.find((a) => leaf.claims.actions.includes(a)) ?? 'read';
+  const internal = INTERNAL_ATTEMPTS[passAction]!;
+  const holdsSend = leaf.claims.actions.includes('send');
+  const externalGranted = leaf.claims.allowedDestinations.includes('external-webhook');
+
+  const attempts: Attempt[] = [
+    {
+      key: 'internal',
+      title: internal.title,
+      hint: leaf.claims.actions.includes(passAction)
+        ? 'passes every guard'
+        : 'nothing internal was granted — fails guard:requested-action',
+      action: passAction,
+      destination: 'internal-only',
+      note: internal.note,
+      tone: 'primary',
+    },
+    {
+      key: 'external',
+      title: 'Send data to external service',
+      hint: !holdsSend
+        ? 'fails guard:requested-action'
+        : externalGranted
+          ? 'allowed — a human put external transfer on the root grant'
+          : 'fails guard:requested-destination',
+      action: 'send',
+      destination: 'external-webhook',
+      tone: holdsSend && externalGranted ? 'primary' : 'deny',
+    },
+  ];
+
   return (
     <div className="card p-5">
       <SectionHeading
         eyebrow="Action console"
-        title={`${actor?.label ?? leaf.claims.subject} requests an action`}
-        hint="The verifier walks this chain back to the human root before answering. It takes no agent's word for its own permissions."
+        title={
+          <>
+            {actor?.label ?? leaf.claims.subject} requests an <Em>action</Em>.
+          </>
+        }
+        hint="The verifier walks this chain back to the human root and re-derives every guard. It takes no agent's word for its own permissions. A request that fails a guard falls back to requiring human authority."
         action={
           verifierMode && (
-            <Chip tone="dim">
-              decided by {verifierMode === 'service' ? '/api/verify' : 'local verifier'}
+            <Chip tone="dim" className="px-2.5">
+              decided by
+              <span className="chip-mono text-ink">
+                {verifierMode === 'service' ? '/api/verify' : 'local verifier'}
+              </span>
             </Chip>
           )
         }
       />
 
       <div className="mt-4 flex flex-wrap gap-2.5">
-        {ATTEMPTS.map((item) => {
+        {attempts.map((item) => {
           const key = `${leafId}:${item.action}:${item.destination}`;
           const pending = pendingAction === key;
           return (
@@ -102,20 +139,20 @@ export function ActionConsole() {
 
       {verification && !verification.allowed && (
         <p className="mt-3 rounded-md border border-deny/20 bg-canvas p-2.5 text-[12.5px] leading-relaxed text-deny">
-          {actor?.label ?? leaf.claims.subject}&rsquo;s chain is currently broken, so every action it attempts will
-          be refused: {verification.reason}
+          {actor?.label ?? leaf.claims.subject}&rsquo;s chain fails a guard already, so every action it attempts is
+          refused: {verification.reason}
         </p>
       )}
 
       <div className="mt-4">
         {latest ? (
           <div key={latest.id}>
-            <div className="label mb-2">Latest receipt</div>
+            <div className="label mb-2">Latest audit entry</div>
             <ReceiptCard receipt={latest} />
           </div>
         ) : (
           <div className="rounded-card border border-dashed border-hairline p-5 text-center text-[12.5px] text-muted">
-            No receipts yet. Try the allowed action, then the one that was never granted.
+            The audit log is empty. Try the action that passes, then the one that fails a guard.
           </div>
         )}
       </div>
