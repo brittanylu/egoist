@@ -9,10 +9,30 @@
 import { Tab, useDemo } from '@/lib/store';
 import { cx } from './ui';
 
-const TABS: Array<{ key: Tab; label: string; hint: string }> = [
-  { key: 'dashboard', label: 'Team Dashboard', hint: 'the people who authorize' },
-  { key: 'chain', label: 'Agent Chain', hint: 'what the agents inherited' },
-  { key: 'passport', label: 'AI Passport', hint: 'the credentials themselves' },
+/**
+ * `tip` is where the vocabulary is defined. The two terms the whole page turns on —
+ * an AI Passport and a child AI Passport — are spelled out on hover rather than in a
+ * glossary nobody scrolls to.
+ */
+const TABS: Array<{ key: Tab; label: string; hint: string; tip: string }> = [
+  {
+    key: 'dashboard',
+    label: 'Team Dashboard',
+    hint: 'who issues the root AI Passport',
+    tip: 'AI Passport — a signed, scoped grant of authority a holder issues and can revoke.',
+  },
+  {
+    key: 'chain',
+    label: 'Agent Chain',
+    hint: 'the child AI Passports it issued',
+    tip: "Child AI Passport — a delegated Passport that can only narrow its parent's authority.",
+  },
+  {
+    key: 'passport',
+    label: 'AI Passport',
+    hint: 'the credentials themselves',
+    tip: 'AI Passport — a signed, scoped grant of authority a holder issues and can revoke.',
+  },
 ];
 
 export function Tabs() {
@@ -33,6 +53,7 @@ export function Tabs() {
             type="button"
             role="tab"
             aria-selected={active}
+            title={item.tip}
             onClick={() => setTab(item.key)}
             className={cx(
               'group rounded-full border px-4 py-2 text-left transition-all duration-200 ease-calm',

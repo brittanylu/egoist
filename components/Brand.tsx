@@ -25,6 +25,10 @@ export function Brand() {
  * same element by class order anyway.
  */
 const MARK_SIZE = {
+  // Set against the headline rather than the header: tall enough to read as the
+  // mark of the thing rather than a badge on it, and stepped at the same
+  // breakpoint as the h1 below it so the two scale together.
+  hero: { image: 'h-16 sm:h-24', type: 'text-[44px] sm:text-[64px]' },
   header: { image: 'h-4', type: 'text-[13px]' },
   footer: { image: 'h-3.5', type: 'text-[11px]' },
 } as const;

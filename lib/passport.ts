@@ -746,7 +746,7 @@ export function authorizeAction(
     return {
       ...base,
       kind: 'refusal',
-      detail: `${leaf.claims.subject} requested '${request}'. The request failed ${guard} at hop ${(broken?.hop ?? 0) + 1}. ${
+      detail: `${leaf.claims.subject} requested '${request}' against its AI Passport. The request failed ${guard} at hop ${(broken?.hop ?? 0) + 1}. ${
         verification.reason ?? 'Chain of custody could not be verified.'
       } No action was taken; the request fell back to requiring human authority.`,
       violatedField: broken?.kind === 'guard' ? verification.violations[0]?.field ?? 'chain' : 'chain',
@@ -767,7 +767,7 @@ export function authorizeAction(
     return {
       ...base,
       kind: 'refusal',
-      detail: `${leaf.claims.subject} requested '${input.action}'. Inherited authority permits actions: ${leaf.claims.actions.join(', ')}. The request failed guard:requested-action at hop ${leafHop}. ${rootIssuer} never granted '${input.action}' on this chain, so no hop below could hold it. No action was taken; the request fell back to requiring human authority.`,
+      detail: `${leaf.claims.subject}'s AI Passport permits actions: ${leaf.claims.actions.join(', ')}. It requested '${input.action}'. The request failed guard:requested-action at hop ${leafHop} — no ancestor AI Passport ever held '${input.action}', back to the root issued by ${rootIssuer}, so no child could inherit it. No action was taken; the request fell back to requiring human authority.`,
       violatedField: 'actions',
       requested: input.action,
       permitted: leaf.claims.actions,
@@ -784,7 +784,7 @@ export function authorizeAction(
     return {
       ...base,
       kind: 'refusal',
-      detail: `${leaf.claims.subject} requested '${input.action} → ${input.destination}'. Inherited authority permits destinations: ${leaf.claims.allowedDestinations.join(', ')}. The request failed guard:requested-destination at hop ${leafHop}. The root Passport issued by ${rootIssuer} never allowed external transfer, so no descendant could acquire it. No data left the boundary; the request fell back to requiring human authority. The refusal is written to the audit log.`,
+      detail: `${leaf.claims.subject}'s AI Passport permits destinations: ${leaf.claims.allowedDestinations.join(', ')}. It requested '${input.action} → ${input.destination}'. The request failed guard:requested-destination at hop ${leafHop} — no ancestor AI Passport ever allowed external transfer, back to the root issued by ${rootIssuer}, so no child could inherit it. No data left the boundary; the request fell back to requiring human authority. The refusal is written to the audit log.`,
       violatedField: 'allowedDestinations',
       requested: input.destination,
       permitted: leaf.claims.allowedDestinations,
@@ -800,7 +800,7 @@ export function authorizeAction(
   return {
     ...base,
     kind: 'allow',
-    detail: `${leaf.claims.subject} performed '${input.action} → ${input.destination}'${input.note ? ` (${input.note})` : ''}. Authority traced through ${verification.chain.length} Passports to ${rootIssuer}; every guard passed at every hop, and each Passport is strictly narrower than its parent.`,
+    detail: `${leaf.claims.subject} performed '${input.action} → ${input.destination}'${input.note ? ` (${input.note})` : ''}. Its AI Passport traced through ${verification.chain.length} Passports to ${rootIssuer}; every guard passed at every hop, and each child Passport is strictly narrower than its parent.`,
     verifiedHops: verification.chain.length,
     scopesUsed: leaf.claims.contextScopes,
     budgetUsd: leaf.claims.budgetUsd,
@@ -839,9 +839,9 @@ export function delegationRefusalReceipt(
     leafPassportId: parent.claims.id,
     rootIssuer,
     kind: 'refusal',
-    detail: `${parent.claims.subject} tried to mint a Passport for ${request.subject} carrying authority it does not hold. The mint failed ${guard} at mint time. ${violations
+    detail: `${parent.claims.subject} tried to issue a child AI Passport to ${request.subject} carrying authority its own Passport does not hold. The request failed ${guard} at issue time. ${violations
       .map((v) => v.message)
-      .join(' ')} No Passport was created; the chain would not have verified. The request fell back to requiring human authority.`,
+      .join(' ')} No child AI Passport was created; the chain would not have verified. The request fell back to requiring human authority.`,
     violatedField: primary?.field ?? 'chain',
     requested: primary?.requested ?? request,
     permitted: primary?.allowedByParent ?? null,

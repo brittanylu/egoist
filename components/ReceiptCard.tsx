@@ -68,7 +68,7 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
             <div className="mt-1 font-mono text-[12px] text-deny">{renderValue(receipt.requested)}</div>
           </div>
           <div>
-            <div className="label text-deny/80">Permitted by inherited authority</div>
+            <div className="label text-deny/80">Permitted by the inherited AI Passport</div>
             <div className="mt-1 font-mono text-[12px]">{renderValue(receipt.permitted)}</div>
           </div>
           <div className="sm:col-span-2">
@@ -82,7 +82,7 @@ export function ReceiptCard({ receipt, compact = false }: { receipt: Receipt; co
                   decision it was is just an error message. */}
               <div className="mt-1 font-mono text-[12px]">
                 {isTeamMember(receipt.rootIssuer) ? holderLine(receipt.rootIssuer) : label(receipt.rootIssuer)} · root
-                Passport · field {receipt.violatedField}
+                AI Passport · field {receipt.violatedField}
               </div>
             </div>
           )}

@@ -80,13 +80,14 @@ export function HowItWorks() {
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <div className="label">How it works</div>
-          <h2 className="display mt-4 max-w-[20ch] text-[34px] sm:text-[44px]">
-            Authority should <Em>shrink</Em> as it travels.
+          <h2 className="display mt-4 max-w-[22ch] text-[34px] sm:text-[44px]">
+            Authority should never <Em>get out of hand</Em>.
           </h2>
         </div>
         <p className="max-w-[46ch] text-[15px] leading-[1.45] text-muted">
-          Four things hold this together: signatures that link each Passport to its parent, a guard on every field, an
-          expiry on every hop, and an audit entry for every decision.
+          Agents spawn agents faster than anyone can keep track of by hand. This is the org chart for that work — who
+          authorized it, how far it reaches, when it lapses — held together by signatures that link each Passport to
+          its parent, a guard on every field, an expiry on every hop, and an audit entry for every decision.
         </p>
       </div>
 
@@ -100,8 +101,9 @@ export function HowItWorks() {
       </dl>
 
       <p className="mt-10 max-w-[70ch] border-t border-hairline pt-6 text-[15px] leading-relaxed text-ink">
-        This is for an operations lead on a real team, who needs to prove to every downstream service that an
-        agent&rsquo;s authority came from a named person and never grew — so work gets delegated safely without giving
+        This is for an operations lead running a real team. Handing work to agents stops being something you hope
+        stayed in bounds and becomes something you can point at: every agent&rsquo;s remit written down, traced to the
+        person who signed it, and provable to every downstream service — so work gets delegated safely without giving
         away more context than necessary.
       </p>
     </div>

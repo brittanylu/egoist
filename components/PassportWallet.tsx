@@ -236,7 +236,7 @@ function PassportCard({ passport, parent, root, index, statuses }: CardProps) {
       <button
         type="button"
         aria-pressed={flipped}
-        aria-label={`${shortLabel(claims.subject)} Passport — tap to flip`}
+        aria-label={`${shortLabel(claims.subject)} AI Passport — tap to flip`}
         onClick={() => {
           setFlipped((f) => !f);
           select(claims.id); // cross-highlights this node on the Agent Chain tab
@@ -260,7 +260,14 @@ function PassportCard({ passport, parent, root, index, statuses }: CardProps) {
 
           {/* Top strip */}
           <div className="flex items-center justify-between gap-2 bg-ink px-3.5 py-2 text-canvas">
-            <span className="flex items-center gap-2">
+            <span
+              className="flex items-center gap-2"
+              title={
+                isRoot
+                  ? 'AI Passport — a signed, scoped grant of authority a holder issues and can revoke.'
+                  : "Child AI Passport — a delegated Passport that can only narrow its parent's authority."
+              }
+            >
               <Emblem />
               <span className="text-[11px] font-medium uppercase tracking-[0.2em]">AI Passport</span>
             </span>
@@ -444,7 +451,7 @@ function PassportCard({ passport, parent, root, index, statuses }: CardProps) {
 // ── The wallet ───────────────────────────────────────────────────────────────
 
 export function PassportWallet() {
-  const { registry, rootId } = useDemo();
+  const { registry, rootId, setTab } = useDemo();
   const statuses = useChainStatuses();
   const root = registry.passports[rootId];
 
@@ -463,10 +470,10 @@ export function PassportWallet() {
           eyebrow="AI Passport"
           title={
             <>
-              {cards.length} credentials, each <Em>narrower</Em> than the last.
+              {cards.length} AI Passports, each <Em>narrower</Em> than the last.
             </>
           }
-          hint="One card per Passport on the chain, in the order authority travelled. Every field is read off the signed claims — the stamps are the permissions it holds, the meter is how much of the human's grant is left, and the strip along the bottom is its Ed25519 signature written the way a passport writes one. Tap any card to turn it over."
+          hint="Every AI Passport in the chain, shown as the credential it is — one card per Passport, in the order authority travelled. Every field is read off the signed claims: the stamps are the permissions it holds, the meter is how much of the human's root Passport is left, and the strip along the bottom is its Ed25519 signature written the way a passport writes one. Tap any card to turn it over."
           action={
             <Chip tone="dim" className="chip-mono">
               {percents[0] ?? 0}% → {percents[percents.length - 1] ?? 0}%
@@ -510,10 +517,17 @@ export function PassportWallet() {
         ))}
       </div>
 
-      <p className="text-[12.5px] leading-relaxed text-muted">
-        Selecting a card also selects that Passport on the <span className="text-ink">Agent Chain</span> tab, so the
-        node and its decoded claims are already waiting there.
-      </p>
+      {/* The note used to describe a jump with no way to take it. The card selection
+          already crosses tabs; this is the door. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <button type="button" className="btn-secondary" onClick={() => setTab('chain')}>
+          See it on the Agent Chain →
+        </button>
+        <p className="max-w-[62ch] text-[12.5px] leading-relaxed text-muted">
+          Selecting a card also selects that AI Passport on the Agent Chain tab, so the node and its decoded claims
+          are already waiting there.
+        </p>
+      </div>
     </div>
   );
 }

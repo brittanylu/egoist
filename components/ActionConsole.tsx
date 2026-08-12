@@ -10,7 +10,7 @@ import { Action, Destination } from '@/lib/passport';
 import { ACTOR_BY_ID } from '@/lib/seed';
 import { useDemo } from '@/lib/store';
 import { ReceiptCard } from './ReceiptCard';
-import { Chip, Em, SectionHeading, cx } from './ui';
+import { Chip, SectionHeading, cx } from './ui';
 import { useChainStatuses } from './useChainStatus';
 
 interface Attempt {
@@ -75,7 +75,7 @@ export function ActionConsole() {
       hint: !holdsSend
         ? 'fails guard:requested-action'
         : externalGranted
-          ? 'allowed — a human put external transfer on the root grant'
+          ? 'allowed — a human put external transfer on the root AI Passport'
           : 'fails guard:requested-destination',
       action: 'send',
       destination: 'external-webhook',
@@ -87,12 +87,8 @@ export function ActionConsole() {
     <div className="card p-5">
       <SectionHeading
         eyebrow="Action console"
-        title={
-          <>
-            {actor?.label ?? leaf.claims.subject} requests an <Em>action</Em>.
-          </>
-        }
-        hint="The verifier walks this chain back to the human root and re-derives every guard. It takes no agent's word for its own permissions. A request that fails a guard falls back to requiring human authority."
+        title={`${actor?.label ?? leaf.claims.subject} requests an action.`}
+        hint="The verifier checks the requesting agent's AI Passport against the chain before allowing any action: it walks every parent Passport back to the human root and re-derives every guard. It takes no agent's word for its own permissions. A request that fails a guard falls back to requiring human authority."
         action={
           verifierMode && (
             <Chip tone="dim" className="px-2.5">
@@ -139,8 +135,8 @@ export function ActionConsole() {
 
       {verification && !verification.allowed && (
         <p className="mt-3 rounded-md border border-deny/20 bg-canvas p-2.5 text-[12.5px] leading-relaxed text-deny">
-          {actor?.label ?? leaf.claims.subject}&rsquo;s chain fails a guard already, so every action it attempts is
-          refused: {verification.reason}
+          {actor?.label ?? leaf.claims.subject}&rsquo;s Passport chain fails a guard already, so every action it
+          attempts is refused: {verification.reason}
         </p>
       )}
 

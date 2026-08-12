@@ -163,11 +163,7 @@ export function TeamDashboard() {
       <section className="card p-5 sm:p-7">
         <SectionHeading
           eyebrow="Team"
-          title={
-            <>
-              {TEAM_NAME.replace(' Team', '')} <Em>Team</Em>
-            </>
-          }
+          title={TEAM_NAME}
           hint="Four people, one shared backlog, and a lot of work they would rather hand to agents."
         />
 
@@ -189,8 +185,12 @@ export function TeamDashboard() {
           ))}
         </div>
 
-        <p className="mt-5 border-t border-hairline pt-4 text-[14px] leading-relaxed text-ink">
-          Agents can never create authority. Every action traces back to a person on this team.
+        <p
+          className="mt-5 border-t border-hairline pt-4 text-[14px] leading-relaxed text-ink"
+          title="AI Passport — a signed, scoped grant of authority a holder issues and can revoke."
+        >
+          A person on the team issues the root AI Passport. Agents can only inherit and narrow it, never create
+          authority — so every action traces back to a person on this team.
         </p>
       </section>
 
@@ -203,14 +203,15 @@ export function TeamDashboard() {
               Hand the work over, on <Em>your</Em> terms.
             </>
           }
-          hint="Pick the job, say what the agent may do, and sign it. Everything the agents do afterwards is a narrowed slice of exactly this — never more."
+          hint="Pick the job, say what the agent may do, and sign it. That signature is the root AI Passport; every child Passport below it is a narrowed slice of exactly this — never more."
         />
 
         {/* Who is authorizing */}
         <div className="mt-6">
           <div className="text-[14.5px] font-medium text-ink">Who&rsquo;s authorizing this?</div>
           <p className="mt-1 text-[12px] leading-relaxed text-muted">
-            Their name goes on the chain. Every agent below inherits from them, and only they can widen it later.
+            Their name goes on the root AI Passport. Every agent below inherits from it, and only they can widen it
+            later.
           </p>
           <div className="mt-2.5 flex flex-wrap gap-2">
             {TEAM_MEMBERS.map((member) => {
@@ -373,7 +374,7 @@ export function TeamDashboard() {
 
           <Field
             label="Let it hand work to other agents?"
-            hint="Helper agents always get less than the agent that called them, never more."
+            hint="Each hand-off issues a child AI Passport. Helper agents always get less than the agent that called them, never more."
           >
             <div className="flex flex-wrap items-center gap-3">
               <Toggle on={form.canDelegate} onClick={() => setForm((f) => ({ ...f, canDelegate: !f.canDelegate }))}>
@@ -413,9 +414,10 @@ export function TeamDashboard() {
           <button
             type="button"
             className="btn-primary"
+            title="AI Passport — a signed, scoped grant of authority a holder issues and can revoke."
             onClick={() => launch({ holderId, templateId, form })}
           >
-            Issue Passport &amp; launch chain
+            Issue root AI Passport &amp; launch chain
           </button>
           <p className="max-w-[52ch] text-[12.5px] leading-relaxed text-muted">
             Signed by {holder.name} as {holder.role}, on behalf of the {TEAM_NAME}. You can withdraw it at any time
@@ -428,12 +430,8 @@ export function TeamDashboard() {
       <section className="card p-5 sm:p-7">
         <SectionHeading
           eyebrow="Active launches"
-          title={
-            <>
-              What this team has <Em>started</Em>.
-            </>
-          }
-          hint="Every chain running under someone's name. Open one to see what its agents actually inherited."
+          title="What this team has started."
+          hint="Every chain running under someone's name, each rooted in one AI Passport. Open one to see what its agents actually inherited."
         />
 
         <div className="mt-5 divide-y divide-hairline border-y border-hairline">
@@ -459,8 +457,10 @@ export function TeamDashboard() {
                 <Chip tone={status.tone === 'default' ? 'dim' : status.tone} className="chip-mono">
                   {status.label}
                 </Chip>
-                <span className="text-[12px] text-muted transition-colors duration-200 group-hover:text-ink">
-                  Open →
+                {/* Says where it lands: this switches tabs, and a bare "Open" reads
+                    like it expands the row in place. */}
+                <span className="whitespace-nowrap text-[12px] text-muted transition-colors duration-200 group-hover:text-ink">
+                  Open in Agent Chain →
                 </span>
               </button>
             );
@@ -468,7 +468,7 @@ export function TeamDashboard() {
         </div>
 
         <p className="mt-4 text-[12.5px] leading-relaxed text-muted">
-          {template.title} is selected above. Launching it again issues a new root Passport — the old chain keeps
+          {template.title} is selected above. Launching it again issues a new root AI Passport — the old chain keeps
           running under whoever signed it, untouched.
         </p>
       </section>

@@ -74,7 +74,12 @@ export function DelegationSandbox() {
   );
 
   const [parentId, setParentId] = useState<string>(passportBySubject['dedup-subagent'] ?? delegable[0]?.claims.id ?? '');
+  // Reset and openLaunch swap in a whole new chain with new ids, so the id parked in
+  // state can name a Passport that no longer exists. Everything below reads the id off
+  // the resolved parent rather than the state, or the mint would be addressed to a
+  // Passport the store cannot find and would fail silently.
   const parent = registry.passports[parentId] ?? delegable[0];
+  const activeParentId = parent?.claims.id ?? '';
 
   const [draft, setDraft] = useState<Draft>({
     subject: 'new-subagent',
@@ -99,7 +104,7 @@ export function DelegationSandbox() {
       canDelegate: false,
     });
     clearSandbox();
-  }, [parentId, parent, clearSandbox]);
+  }, [activeParentId, parent, clearSandbox]);
 
   if (!parent) return null;
 
@@ -126,10 +131,10 @@ export function DelegationSandbox() {
         eyebrow="Delegation sandbox"
         title={
           <>
-            Try to mint a child with more <Em>authority</Em>.
+            Try to issue a child with <Em>more</Em> authority.
           </>
         }
-        hint="Nothing here is enforced by convention. Every guard runs at mint time, so a Passport broader than its parent cannot be signed into existence — it stays a draft."
+        hint="Try to issue a child AI Passport with more authority than its parent — the guards won't sign it. Nothing here is enforced by convention: every guard runs at issue time, so a Passport broader than its parent cannot be signed into existence. It stays a draft."
         action={<StatusPill stage="draft" note="unsigned request" />}
       />
 
@@ -138,7 +143,7 @@ export function DelegationSandbox() {
         <label className="flex flex-col gap-1.5">
           <span className="label">Delegating agent</span>
           <select
-            value={parentId}
+            value={activeParentId}
             onChange={(event) => setParentId(event.target.value)}
             className="rounded-md border border-hairline bg-canvas px-2.5 py-1.5 text-[13px]"
           >
@@ -277,8 +282,13 @@ export function DelegationSandbox() {
             />
             may delegate further
           </label>
-          <button type="button" className="btn-primary ml-auto" onClick={() => mintFromSandbox(parentId, request)}>
-            Mint child Passport
+          <button
+            type="button"
+            className="btn-primary ml-auto"
+            title="Child AI Passport — a delegated Passport that can only narrow its parent's authority."
+            onClick={() => mintFromSandbox(activeParentId, request)}
+          >
+            Issue child AI Passport
           </button>
         </div>
       </div>
@@ -298,21 +308,26 @@ export function DelegationSandbox() {
                   draft → active
                 </span>
                 <span className="text-[13px]">
-                  {parentLabel} issued a Passport to{' '}
+                  {parentLabel} issued a child AI Passport to{' '}
                   <span className="font-mono">{sandbox.requestedSubject}</span>
                 </span>
               </div>
               <p className="mt-2.5 text-[13px] leading-relaxed text-ink/90">
-                Every guard passed against {parentLabel}&rsquo;s own authority, so the Passport was signed and added
-                to the chain. It is active, and appears in the graph above.
+                Every guard passed against {parentLabel}&rsquo;s own AI Passport, so the child was signed and added to
+                the chain. It is active, and appears in the graph above.
               </p>
               {sandbox.mintedId && (
                 <button
                   type="button"
                   className="btn-secondary mt-3"
-                  onClick={() => select(sandbox.mintedId!)}
+                  onClick={() => {
+                    select(sandbox.mintedId!);
+                    // The drawer sits at the top of this tab, well above the sandbox.
+                    // Selecting without scrolling looks like the button did nothing.
+                    document.getElementById('passport-drawer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
                 >
-                  Inspect it
+                  Decode it in the AI Passport panel ↑
                 </button>
               )}
             </>
@@ -323,12 +338,12 @@ export function DelegationSandbox() {
                   stays draft
                 </span>
                 <span className="text-[13px]">
-                  No Passport was created for{' '}
+                  No child AI Passport was created for{' '}
                   <span className="font-mono">{sandbox.requestedSubject}</span>
                 </span>
               </div>
               <p className="mt-2.5 text-[13px] leading-relaxed text-ink/90">
-                {parentLabel} cannot grant what it does not hold. The request failed{' '}
+                {parentLabel}&rsquo;s AI Passport cannot grant what it does not hold. The request failed{' '}
                 {sandbox.violations.length} guard{sandbox.violations.length === 1 ? '' : 's'} and fell back to
                 requiring human authority. The attempt was written to the audit log.
               </p>

@@ -97,7 +97,10 @@ function NodeCard({
       </div>
 
       {/* Where it sits in the loop: draft → active → revoked. */}
-      <div className="mt-2.5" title={ok ? 'every guard passed, up to the human root' : (status?.reason ?? '')}>
+      <div
+        className="mt-2.5"
+        title={ok ? 'this AI Passport passed every guard, up to the human root' : (status?.reason ?? '')}
+      >
         <StatusPill stage={lifecycle.stage} note={lifecycle.note} />
       </div>
 
@@ -146,10 +149,10 @@ function NodeCard({
         <span className="text-hairline">·</span>
         <span>{formatWindow(claims)}</span>
         <span className="text-hairline">·</span>
-        <span className={cx(claims.expiresAt <= now && 'text-deny')} title="time left on this Passport">
+        <span className={cx(claims.expiresAt <= now && 'text-deny')} title="time left on this AI Passport">
           {formatCountdown(claims.expiresAt, now)}
         </span>
-        <span className="ml-auto" title="delegation hops still available beneath this Passport">
+        <span className="ml-auto" title="child AI Passports still issuable beneath this one">
           {claims.canDelegate ? `↳${claims.maxDepth}` : '⊣'}
         </span>
       </div>
@@ -249,7 +252,7 @@ function HolderCard({ root }: { root: PassportClaims }) {
         </span>
       </div>
       <p className="mt-3 text-[12px] leading-relaxed text-canvas/70">
-        Issues the root Passport. Everything below inherits from here, and nothing below can exceed it.
+        Issues the root AI Passport. Every Passport below inherits from here, and none of them can exceed it.
       </p>
       <div className="mt-3 flex flex-wrap gap-1 border-t border-white/10 pt-2.5">
         <Chip tone="invert">signing key held by a person</Chip>
@@ -280,8 +283,11 @@ export function ChainGraph() {
           and a key you have to scroll to find is not a key. */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-hairline pb-3">
         <TierLegend />
-        <span className="font-mono text-[11px] text-muted">
-          Claude Code holds the human&rsquo;s grant · everything below it is a subagent
+        <span
+          className="font-mono text-[11px] text-muted"
+          title="Child AI Passport — a delegated Passport that can only narrow its parent's authority."
+        >
+          Claude Code holds the human&rsquo;s AI Passport · each edge issues a child AI Passport
         </span>
       </div>
 

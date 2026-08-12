@@ -23,7 +23,11 @@ export function PassportDrawer() {
   if (!passport) {
     return (
       <div className="card p-5">
-        <SectionHeading eyebrow="Passport" title="Nothing selected" hint="Pick any node in the chain to decode its Passport." />
+        <SectionHeading
+          eyebrow="AI Passport"
+          title="Nothing selected"
+          hint="Pick any node in the chain to decode its AI Passport — the signed authority it inherited."
+        />
       </div>
     );
   }
@@ -43,22 +47,32 @@ export function PassportDrawer() {
   return (
     <div className="card animate-fade p-5">
       <SectionHeading
-        eyebrow="Passport"
+        eyebrow="AI Passport"
         title={actor?.label ?? claims.subject}
         hint={
           actor && (
-            <span className="flex flex-wrap items-center gap-2">
-              <TierBadge kind={actor.kind} />
-              <span>
-                {actor.role}
-                {spawner && (
-                  <>
-                    {' · '}
-                    {spawner.kind === 'human' ? 'authorized by' : 'spawned by'} {spawner.label}
-                  </>
-                )}
+            <>
+              <span className="flex flex-wrap items-center gap-2">
+                <TierBadge kind={actor.kind} />
+                <span>
+                  {actor.role}
+                  {spawner && (
+                    <>
+                      {' · '}
+                      {spawner.kind === 'human' ? 'authorized by' : 'spawned by'} {spawner.label}
+                    </>
+                  )}
+                </span>
               </span>
-            </span>
+              {/* Says what the panel is before it says what is in it: the reader is
+                  looking at a credential, not a settings page. */}
+              <span
+                className="mt-1.5 block"
+                title="AI Passport — a signed, scoped grant of authority a holder issues and can revoke."
+              >
+                This is {actor.label}&rsquo;s AI Passport — the signed authority it inherited.
+              </span>
+            </>
           )
         }
         action={<StatusPill stage={lifecycle.stage} note={lifecycle.note} />}
@@ -99,7 +113,7 @@ export function PassportDrawer() {
               {parent.claims.id}
             </button>
           ) : (
-            <span className="text-muted">none · this is the root</span>
+            <span className="text-muted">none · this is the root AI Passport</span>
           )}
         </KeyValue>
         <KeyValue label="Actions">
@@ -180,7 +194,8 @@ export function PassportDrawer() {
             ))}
           </div>
           <p className="mt-2 text-[11.5px] leading-relaxed text-muted">
-            Every guard passed at every hop. Authority never widened along this path, and it began with a person.
+            Every guard passed at every hop. Each Passport on this path is a child of the one before it, authority
+            never widened, and it began with a person.
           </p>
         </div>
       )}

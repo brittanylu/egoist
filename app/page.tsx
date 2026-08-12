@@ -59,15 +59,31 @@ export default function Page() {
 
         {/* Hero */}
         <section className="mt-20 max-w-[62ch] sm:mt-28">
+          {/* The mark, set at headline scale. block so it takes its own line and its
+              bottom margin is not swallowed by inline layout; w-auto with the fixed
+              intrinsic ratio in the file is what keeps it from stretching. */}
+          <EgoistMark size="hero" className="mb-9 block sm:mb-11" />
           <h1 className="display text-[52px] sm:text-[80px]">
             Stop permission <Em>laundering</Em>.
           </h1>
           <p className="mt-8 max-w-[54ch] text-[17px] leading-[1.45] text-muted sm:text-[19px]">
             {holderName}
-            {holder && isTeamMember(issuer) ? `, ${holder.role} on the ${TEAM_NAME},` : ''} authorizes Claude Code to
-            clean up three years of support tickets. Claude Code spawns subagents, and those spawn subagents of their
-            own. Watch the authority get strictly narrower at every hop — then watch the last subagent try to exceed
-            it.
+            {holder && isTeamMember(issuer) ? `, ${holder.role} on the ${TEAM_NAME},` : ''} issues an AI Passport to
+            Claude Code to clean up three years of support tickets. Claude Code spawns subagents, and those spawn
+            subagents of their own. Every node on the chain holds a Passport, and every hop issues a strictly narrower
+            child Passport — then watch the last subagent try to exceed the one it was given.
+          </p>
+
+          {/* The one line that names what this is built on. Everything below is this
+              sentence, demonstrated. */}
+          <p
+            className="mt-7 max-w-[58ch] text-[13.5px] leading-[1.55] text-muted"
+            title="AI Passport — a signed, scoped grant of authority a holder issues and can revoke."
+          >
+            Egoist&rsquo;s AI Passport lets a person grant scoped, revocable context to the AI they allow. Chain of
+            Custody extends that idea to delegation: when one agent hands work to another, it issues a child AI
+            Passport that can only ever narrow — so a human&rsquo;s permission can&rsquo;t be laundered into broader
+            machine authority.
           </p>
         </section>
 
@@ -96,31 +112,35 @@ export default function Page() {
                   eyebrow="Chain of custody"
                   title={
                     <>
-                      One human permission, five <Em>Passports</Em>.
+                      One human permission, five <Em>AI Passports</Em>.
                     </>
                   }
-                  hint="Each card shows the authority its Passport carries, against what the human granted, and where it sits in the loop: draft → active → revoked. Struck-through chips were given up on the way down. Click any node to decode it."
+                  hint="Every node carries this agent's AI Passport. Each card shows the authority that Passport holds, against what the human granted, and where it sits in the loop: draft → active → revoked. Struck-through chips were given up on the way down. Click any node to decode its Passport."
                 />
                 <div className="mt-6">
                   <ChainGraph />
                 </div>
               </div>
 
-              <div className="lg:sticky lg:top-6 lg:self-start">
+              {/* Named so the two places that select a Passport from further down the
+                  page — the sandbox and the wallet — can bring it into view. */}
+              <div id="passport-drawer" className="scroll-mt-6 lg:sticky lg:top-6 lg:self-start">
                 <PassportDrawer />
               </div>
             </section>
 
-            {/* The four moments */}
-            <section className="mt-6 grid gap-6 lg:grid-cols-3">
-              <div className="min-w-0 lg:col-span-2">
+            {/* The four moments. Two independent columns rather than grid rows: the
+                cards are unequal heights, and a row would pad the shorter one out to
+                match its neighbour instead of letting the next card follow it. */}
+            <section className="mt-6 grid items-start gap-6 lg:grid-cols-3">
+              <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
                 <ActionConsole />
-              </div>
-              <RevocationControls />
-              <div className="min-w-0 lg:col-span-2">
                 <DelegationSandbox />
               </div>
-              <AuditLog />
+              <div className="flex min-w-0 flex-col gap-6">
+                <RevocationControls />
+                <AuditLog />
+              </div>
             </section>
 
             <section className="mt-20">

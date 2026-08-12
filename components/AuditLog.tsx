@@ -32,7 +32,7 @@ export function AuditLog() {
             Nothing is <Em>omitted</Em>.
           </>
         }
-        hint="Append-only audit log of actions, accesses, and refusals."
+        hint="Every AI Passport check — allow, access, or refusal — is written here, append-only."
         action={
           receipts.length > 0 && (
             <button type="button" className="btn-ghost text-[12px]" onClick={clearReceipts}>
@@ -61,7 +61,7 @@ export function AuditLog() {
       <div className="scroll-thin mt-3 max-h-[560px] flex-1 space-y-3 overflow-y-auto pr-1">
         {shown.length === 0 ? (
           <div className="rounded-card border border-dashed border-hairline p-5 text-center text-[12.5px] text-muted">
-            Every allow and every refusal lands here, with the guard that decided it.
+            Every AI Passport check lands here — allow or refusal — with the guard that decided it.
           </div>
         ) : (
           shown.map((receipt) => <ReceiptCard key={receipt.id} receipt={receipt} compact />)

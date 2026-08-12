@@ -12,7 +12,7 @@ import { childrenOf, descendantsOf } from '@/lib/passport';
 import { ACTOR_BY_ID } from '@/lib/seed';
 import { holderLine, isTeamMember } from '@/lib/team';
 import { useDemo } from '@/lib/store';
-import { Chip, Em, SectionHeading, cx } from './ui';
+import { Chip, SectionHeading, cx } from './ui';
 import { useChainStatuses } from './useChainStatus';
 
 export function RevocationControls() {
@@ -39,16 +39,12 @@ export function RevocationControls() {
     <div className="card p-5">
       <SectionHeading
         eyebrow="Revocation"
-        title={
-          <>
-            Withdraw <Em>authority</Em>.
-          </>
-        }
+        title="Withdraw authority."
         hint={
           <>
-            Only {isTeamMember(issuer) ? holderLine(issuer) : label(issuer)} can do this — no agent on the chain can
-            withdraw anything, including its own. Revoking moves a Passport from active to revoked, and takes its whole
-            subtree with it. Nothing else moves.
+            Revoking an AI Passport retires it and its whole subtree; downstream Passports stop verifying. Only{' '}
+            {isTeamMember(issuer) ? holderLine(issuer) : label(issuer)} can do this — no agent on the chain can
+            withdraw anything, including its own Passport. Nothing outside that subtree moves.
           </>
         }
       />
@@ -60,7 +56,7 @@ export function RevocationControls() {
           disabled={root.claims.revoked}
           onClick={() => revokePassport(root.claims.id)}
         >
-          {root.claims.revoked ? 'Root revoked — everything is dark' : 'Revoke the root Passport'}
+          {root.claims.revoked ? 'Root revoked — every Passport below it is dark' : 'Revoke the root AI Passport'}
         </button>
 
         {branch && (
@@ -85,12 +81,17 @@ export function RevocationControls() {
       {branch && (
         <div className="mt-4 border-t border-hairline pt-3">
           <div className="label">Effect on the tree</div>
-          <div className="mt-2 grid gap-3 sm:grid-cols-2">
-            <div>
-              <div className="text-[12px] uppercase tracking-[0.1em] text-muted">
+          {/* min-w-0 on both columns is load-bearing. A grid item defaults to
+              min-width:auto, so a track refuses to shrink below its widest
+              unbreakable child — and .chip is whitespace-nowrap. Without it the
+              first column sizes to its longest chip and overruns the second
+              rather than letting the chips wrap. */}
+          <div className="mt-3 grid gap-x-8 gap-y-6 sm:grid-cols-2">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase leading-tight tracking-[0.1em] text-muted">
                 {label(branch.claims.subject)} subtree
               </div>
-              <div className="mt-1.5 flex flex-wrap gap-1">
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
                 {branchSubtree.map((p) => (
                   <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'} className="chip-mono">
                     {label(p.claims.subject)} · {statusOf(p.claims.id) ? 'active' : 'revoked'}
@@ -98,9 +99,11 @@ export function RevocationControls() {
                 ))}
               </div>
             </div>
-            <div>
-              <div className="text-[12px] uppercase tracking-[0.1em] text-muted">Unrelated branches</div>
-              <div className="mt-1.5 flex flex-wrap gap-1">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase leading-tight tracking-[0.1em] text-muted">
+                Unrelated branches
+              </div>
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
                 {others.map((p) => (
                   <Chip key={p.claims.id} tone={statusOf(p.claims.id) ? 'allow' : 'deny'} className="chip-mono">
                     {label(p.claims.subject)} · {statusOf(p.claims.id) ? 'active' : 'revoked'}
@@ -110,7 +113,7 @@ export function RevocationControls() {
             </div>
           </div>
           <p className={cx('mt-3 text-[12px] leading-relaxed text-muted')}>
-            Revocation is verifier-side state, so it sits outside the issuer&rsquo;s signature: withdrawing a
+            Revocation is verifier-side state, so it sits outside the issuer&rsquo;s signature: withdrawing an AI
             Passport does not forge it, it retires it.
           </p>
         </div>
